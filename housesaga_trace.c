@@ -174,7 +174,9 @@ static const char *housesaga_webtraces (const char *method, const char *uri,
     const char *app = housesaga_getjsonstring (TraceParsed, ".apps[0]");
     if (!host || !app) return "";
 
-    int traces = echttp_json_search(TraceParsed, ".traces");
+    char path[128];
+    snprintf (path, sizeof(path), ".%s.traces", app);
+    int traces = echttp_json_search(TraceParsed, path);
     if (TraceParsed[traces].type != PARSER_ARRAY) return "";
 
     int i;

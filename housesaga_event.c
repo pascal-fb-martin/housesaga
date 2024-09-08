@@ -404,7 +404,9 @@ static const char *housesaga_webpost (const char *data, int length) {
     const char *host = housesaga_getjsonstring (EventParsed, ".host");
     const char *app = housesaga_getjsonstring (EventParsed, ".apps[0]");
 
-    int events = echttp_json_search(EventParsed, ".events");
+    char path[128];
+    snprintf (path, sizeof(path), ".%s.events", app);
+    int events = echttp_json_search(EventParsed, path);
     if (EventParsed[events].type != PARSER_ARRAY) return "";
 
     int i;
