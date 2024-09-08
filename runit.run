@@ -1,0 +1,7 @@
+#!/bin/sh
+HTTPOPTS=
+OTHEROPTS=
+if [ -e /etc/default/housesaga ] ; then . /etc/default/housesaga ; fi
+sv start houseportal || exit 1
+exec /usr/local/bin/housesaga $HTTPOPTS $OTHEROPTS
+

@@ -1,0 +1,5 @@
+POST http://localhost/saga/log/events
++{"host":"test","apps":["testapp"],"events":[[1725754068001,"CAT","BOULE","ATE","HIS USUAL FOOD"],[1725754068002,"CAT","LINUS","BARFED","AFTER BAD MEAL"]]}
+POST http://localhost/saga/log/traces
++{"host":"test","apps":["testapp"],"traces":[[1725755068001,"faketest.c",666,"TEST","BOULE","SCRATCHED THE CHAIR"],[1725755068002,"fakecode.c",911,"WARNING","LINUS","BARFED ON THE FLOOR"]]}
+
