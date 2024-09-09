@@ -34,7 +34,7 @@ clean:
 rebuild: clean all
 
 %.o: %.c
-	gcc -c -g -O -o $@ $<
+	gcc -c -g -Os -o $@ $<
 
 housesaga: $(OBJS)
 	gcc -g -O -o housesaga $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lrt
