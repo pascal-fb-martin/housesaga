@@ -123,7 +123,10 @@ int main (int argc, const char **argv) {
 
     echttp_static_route ("/", "/usr/local/share/house/public");
     echttp_background (&housesaga_background);
-    houselog_event ("SERVICE", "saga", "STARTED", "ON %s", housesaga_host());
+
+    // Mark the (re)start point in both logs
+    houselog_trace (HOUSE_INFO, "saga", "STARTED", "");
+    houselog_event ("SERVICE", "saga", "STARTED", "");
     echttp_loop();
 }
 
