@@ -117,8 +117,7 @@ struct EventRecord {
     char   description[128];
 };
 
-#define HISTORY_DEPTH 2560
-#define HISTORY_CHUNK (HISTORY_DEPTH/10)
+#define HISTORY_DEPTH 256
 
 static struct EventRecord EventHistory[HISTORY_DEPTH];
 static int EventCursor = 0;
@@ -143,8 +142,7 @@ static unsigned long long housesaga_timestamp2key (const struct timeval *t) {
     return t->tv_sec * 1000 + t->tv_usec / 1000;
 }
 
-
-static int housesaga_storeaction (void *data) {
+static int housesaga_saveaction (void *data) {
 
     static char EventHeader[] =
         "TIMESTAMP,HOST,APP,CATEGORY,OBJECT,ACTION,DESCRIPTION";
@@ -189,9 +187,9 @@ static void housesaga_event_save (int full) {
     if (EventLastSaved) {
         echttp_sorted_ascending_from (EventChronology,
                                       EventLastSaved * 1000,
-                                      housesaga_storeaction);
+                                      housesaga_saveaction);
     } else {
-        echttp_sorted_ascending (EventChronology, housesaga_storeaction);
+        echttp_sorted_ascending (EventChronology, housesaga_saveaction);
     }
     housesaga_storage_flush();
     EventLastSaved = full ? now : EventSaveLimit;
@@ -207,7 +205,7 @@ static void housesaga_event_new (const struct timeval *timestamp,
                                  const char *category,
                                  const char *object,
                                  const char *action,
-                                 const char *text) {
+                                 const char *text, int propagate) {
 
     struct EventRecord *cursor = EventHistory + EventCursor;
 
@@ -220,7 +218,8 @@ static void housesaga_event_new (const struct timeval *timestamp,
     safecpy (cursor->object, object, sizeof(cursor->object));
     safecpy (cursor->action, action, sizeof(cursor->action));
     safecpy (cursor->description, text, sizeof(cursor->description));
-    cursor->unsaved = 1;
+    cursor->unsaved = propagate;
+
     echttp_sorted_add (EventChronology,
                        housesaga_timestamp2key (&(cursor->timestamp)),
                        (void *)((long)EventCursor));
@@ -272,7 +271,29 @@ void houselog_event (const char *category,
     gettimeofday (&timestamp, 0);
 
     housesaga_event_new (&timestamp, housesaga_host(), "saga", 
-                         category, object, action, text);
+                         category, object, action, text, 1);
+}
+
+/* Local clone for the houselog.c API.
+ * This function plugs into the event reporting used by the HouseSaga web API.
+ */
+void houselog_event_local (const char *category,
+                           const char *object,
+                           const char *action,
+                           const char *format, ...) {
+
+    va_list ap;
+    char text[128];
+    struct timeval timestamp;
+
+    va_start (ap, format);
+    vsnprintf (text, sizeof(text), format, ap);
+    va_end (ap);
+
+    gettimeofday (&timestamp, 0);
+
+    housesaga_event_new (&timestamp, housesaga_host(), "saga", 
+                         category, object, action, text, 0);
 }
 
 static int housesaga_event_getheader (char *buffer, int size, const char *from) {
@@ -292,7 +313,7 @@ static int housesaga_event_getheader (char *buffer, int size, const char *from) 
                         (long)time(0), LogAppName, fromparam, EventLatestId);
 }
 
-static char WebFormatBuffer[128+HISTORY_CHUNK*(sizeof(struct EventRecord)+24)] = {0};
+static char WebFormatBuffer[128+HISTORY_DEPTH*(sizeof(struct EventRecord)+24)] = {0};
 static int WebFormatLength = 0;
 static const char *WebFormatPrefix = "";
 
@@ -337,7 +358,6 @@ static const char *housesaga_weblatest (const char *method, const char *uri,
 static const char *housesaga_webget (void) {
 
     echttp_content_type_json ();
-    const char *from = echttp_parameter_get ("from");
 
     WebFormatLength = housesaga_event_getheader (WebFormatBuffer,
                                                 sizeof(WebFormatBuffer), 0);
@@ -346,12 +366,7 @@ static const char *housesaga_webget (void) {
                                  ",\"events\":[");
 
     WebFormatPrefix = "";
-    if (from) {
-        echttp_sorted_descending_from
-            (EventChronology, atoll(from), housesaga_webaction);
-    } else {
-        echttp_sorted_descending(EventChronology, housesaga_webaction);
-    }
+    echttp_sorted_descending(EventChronology, housesaga_webaction);
     snprintf (WebFormatBuffer+WebFormatLength,
               sizeof(WebFormatBuffer)-WebFormatLength, "]}}");
     return WebFormatBuffer;
@@ -424,7 +439,7 @@ static const char *housesaga_webpost (const char *data, int length) {
         if ((timestamp.tv_sec > 0) &&
             host && app && category && object && action && description) {
             housesaga_event_new (&timestamp, host, app,
-                                 category, object, action, description);
+                                 category, object, action, description, 1);
         }
     }
 
