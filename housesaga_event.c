@@ -414,6 +414,7 @@ static const char *housesaga_webpost (const char *data, int length) {
         EventParsed = calloc (count, sizeof(ParserToken));
     }
     const char *error = echttp_json_parse (EventBuffer, EventParsed, &count);
+    if (error) return ""; // Ignore bad data from applications.
 
     // TBD: decode JSON, register events.
     const char *host = housesaga_getjsonstring (EventParsed, ".host");

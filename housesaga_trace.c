@@ -168,6 +168,7 @@ static const char *housesaga_webtraces (const char *method, const char *uri,
         TraceParsed = calloc (count, sizeof(ParserToken));
     }
     const char *error = echttp_json_parse (TraceBuffer, TraceParsed, &count);
+    if (error) return ""; // Ignore bad data from applications.
 
     // TBD: decode JSON, register traces.
     const char *host = housesaga_getjsonstring (TraceParsed, ".host");
