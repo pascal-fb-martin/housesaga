@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=stylesheet type="text/css" href="/house.css" title="House">
+<script>
+
+var sensorLastId = new Array();
+
+function sensorNewColumn (text) {
+   var column = document.createElement("td");
+   column.innerHTML = text;
+   return column;
+}
+
+function sensorRow (data) {
+   var timestamp = new Date(data[0]);
+   var row = document.createElement("tr");
+   row.appendChild(sensorNewColumn(timestamp.toLocaleString()));
+   if (data.length > 6) {
+       row.appendChild(sensorNewColumn(data[5]+'/'+data[6]));
+   }
+   row.appendChild(sensorNewColumn(data[1]));
+   row.appendChild(sensorNewColumn(data[2]));
+   row.appendChild(sensorNewColumn(data[3]+' ('+data[4]+')'));
+   return row;
+}
+
+function sensorShow (response) {
+
+   var app = response.apps[0]; // For now handle only one app per query.
+
+   if (!sensorLastId[app]) {
+      var name = app[0].toUpperCase() + app.substring(1);
+      var title = response.host + ' - ' + name + ' Events';
+      document.getElementsByTagName ('title')[0].innerHTML = title;
+      var elements = document.getElementsByClassName ('hostname');
+      for (var i = 0; i < elements.length; i++) {
+          elements[i].innerHTML = response.host;
+      }
+   }
+
+   sensorLastId[app] = response[app].latest;
+
+   var table = document.getElementsByClassName ('datalist')[0];
+   for (var i = table.childNodes.length - 1; i > 1; i--) {
+      table.removeChild(table.childNodes[i]);
+   }
+   if (response[app].invert) {
+      var end = response[app].sensor.length;
+      for (var i = 0; i < end; ++i) {
+         table.appendChild(sensorRow(response[app].sensor[i]));
+      }
+   } else {
+      for (var i = response[app].sensor.length-1; i >= 0; --i) {
+         table.appendChild(sensorRow(response[app].sensor[i]));
+      }
+   }
+}
+
+function sensorUpdate() {
+
+   var command = new XMLHttpRequest();
+   command.open("GET", "/saga/log/sensor/data");
+   command.onreadystatechange = function () {
+      if (command.readyState === 4 && command.status === 200) {
+         sensorShow (JSON.parse(command.responseText));
+      }
+   }
+   command.send(null);
+}
+
+function sensorCheck () {
+
+   var response = null;
+
+   function needUpdate (result, value) {
+      if (result) return true;
+      if (! sensorLastId[value]) return true;
+      if (response[value].latest != sensorLastId[value]) return true;
+      return false;
+   }
+
+   var command = new XMLHttpRequest();
+   command.open("GET", "/saga/log/sensor/check");
+   command.onreadystatechange = function () {
+       if (command.readyState === 4 && command.status === 200) {
+           response = JSON.parse(command.responseText);
+           if (response.apps.reduce(needUpdate, false)) sensorUpdate ();
+       }
+   }
+   command.send(null);
+}
+
+window.onload = function() {
+   sensorUpdate();
+   setInterval (sensorCheck, 1000);
+}
+</script>
+<head>
+   <title></title>
+</head>
+<body>
+   <table class="housetopcontainer">
+   <tr><td>
+   <table class="housetop">
+   <tr>
+   <td><a href="/saga/index.html">Events</a></td>
+   <td><span>Sensors</span></td>
+   </tr>
+   </table>
+   </td></tr>
+   </table>
+   <table class="housewidetable datalist" border="0">
+      <tr>
+         <th width="20%">TIME</th>
+         <th width="25%">SOURCE</th>
+         <th width="25%">LOCATION</th>
+         <th width="20%">NAME</th>
+         <th width="10%">VALUE</th>
+      </tr>
+   </table>
+</body>
+</html>
+

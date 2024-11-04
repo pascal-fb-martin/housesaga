@@ -45,6 +45,7 @@
 
 #include "housesaga_storage.h"
 #include "housesaga_trace.h"
+#include "housesaga_sensor.h"
 #include "housesaga_event.h"
 
 static int use_houseportal = 0;
@@ -67,6 +68,7 @@ static void housesaga_background (int fd, int mode) {
     }
     if (now > LastFlush) {
         housesaga_event_background (now);
+        housesaga_sensor_background (now);
         LastFlush = now;
     }
 }
@@ -119,6 +121,7 @@ int main (int argc, const char **argv) {
 
     housesaga_trace_initialize (argc, argv);
     housesaga_event_initialize (argc, argv);
+    housesaga_sensor_initialize (argc, argv);
     housesaga_storage_initialize (argc, argv);
 
     echttp_static_route ("/", "/usr/local/share/house/public");

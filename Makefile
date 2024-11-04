@@ -23,7 +23,7 @@ SHARE=$(HROOT)/share/house
 
 # Application build. --------------------------------------------
 
-OBJS= housesaga.o housesaga_event.o housesaga_trace.o housesaga_storage.o
+OBJS= housesaga.o housesaga_event.o housesaga_trace.o housesaga_sensor.o housesaga_storage.o
 LIBOJS=
 
 all: housesaga

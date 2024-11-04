@@ -1,7 +1,7 @@
 # HouseSaga
 A House web service to maintain consolidated logs from all services.
 ## Overview
-This is a web server application that consolidate events and stores them to
+This is a web server application that consolidate events, sensor data and traces and stores them to
 files for other web services.
 
 The service implements a specific behavior:
@@ -31,7 +31,7 @@ Access to HouseSaga is not restricted: this service should only be accessible fr
 By convention there are three types of logs commonly used with HouseSaga:
 * Event logs.
 * Trace logs.
-* Measure logs. (not supported for now)
+* Sensor measurement logs.
 * Metrics logs. (not supported for now)
 
 Note that this service consolidates records from all sources into a single log for each type of log. There is one single event log aggregating events from all sources, one single trace log aggregating traces from all sources, etc.
@@ -79,30 +79,49 @@ HouseSaga stores all log files in /var/lib/house/log. The directory organization
 ## Web API for Events
 
 ```
-GET /saga/log/events[?from=<timestamp>]
+GET /saga/log/latest
 ```
-Retrieve up to 256 of the most recent events, or up to 256 of the event starting at timestamp. The events are shown in reverse chronological order (most recent event first). Only events still stored in RAM can be accessed this way.
+Retrieve an ID of the latest event. Whatever this ID represents, or how it is built, is irrelevant. The only point is that this value changes when new events have been recorded. A client may poll this URI periodically: if any new event is detected, then the client must call the subsequent URI to retrieve the new list of events.
+
+```
+GET /saga/log/events
+```
+Retrieve up to 256 of the most recent events. The events are shown in reverse chronological order (most recent event first). Only events still stored in RAM can be accessed this way.
 
 ```
 POST /saga/log/events
 ```
 Push a new list of events to HouseSaga. The format of the events is the same as the JSON format provided for the source's own web event page.
 
-## Web API for Other Log Types
+Each POST appends more events to the log. HouseSaga will infer the year and month from each event timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each event.
+
+## Web API for Traces
 
 ```
-GET /saga/log/<type>/<year>/<month>.csv
+POST /saga/log/traces
+```
+Push a new list of traces to HouseSaga. These traces are immediately written to storage. This means that traces might be stored out of their original sequence, depending on the clients buffer mechanisms.
+
+## Web API for sensor data
+
+```
+GET /saga/log/sensor/check
+```
+Retrieve an ID of the latest sensor data. Whatever this ID represents, or how it is built, is irrelevant. The only point is that this value changes when new sensor data has been recorded. A client may poll this URI periodically: if any new sensor data is detected, then the client must call the subsequent URI to retrieve the new list of sensor data.
+
+```
+GET /saga/log/sensor/data
 ```
 
-Retrieve one log file. By convention the path contains the type of data, then the name of the service and server that produced the log. The path must end with the 4-digits year and 2-digits month number (from 01 to 12). Some services may generate more than one type of log.
+Retrieve the most recent sensor data. The data is listed in reverse chronological order (most recent data first). Only sensor data still stored in RAM is accessible.
 
 ```
-POST /saga/log/<type>
+POST /saga/log/sensor/data
 ```
 
-The data associated must start with a field name line, followed by CSV records.
+Push a new list of events to HouseSaga, in JSON format.
 
-Each POST appends more records to the log. HouseSaga will infer the year and month from each record timestamps, not from the time of the submission. Therefore a TIMESTAMP field is mandatory in the CSV data.
+Each POST appends more sensor records to the log. HouseSaga will infer the year and month from each record timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each record.
 
 ## Configuration
 
