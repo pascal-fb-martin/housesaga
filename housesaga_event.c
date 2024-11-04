@@ -154,8 +154,8 @@ static int housesaga_saveaction (void *data) {
 
         if (cursor->timestamp.tv_sec > EventSaveLimit) return 0;
 
-        snprintf (buffer, sizeof(buffer), "%ld.%03d,%s,%s,%s,%s,%s,\"%s\"",
-                  cursor->timestamp.tv_sec,
+        snprintf (buffer, sizeof(buffer), "%lld.%03d,%s,%s,%s,%s,%s,\"%s\"",
+                  (long long)(cursor->timestamp.tv_sec),
                   cursor->timestamp.tv_usec / 1000,
                   cursor->host,
                   cursor->app,
@@ -225,7 +225,7 @@ static void housesaga_event_new (const struct timeval *timestamp,
                        (void *)((long)EventCursor));
 
     if (timestamp->tv_sec < EventLastSaved) {
-        // Hoops: we got a late even from a distant past. We need
+        // Hoops: we got a late event from a distant past. We need
         // to make sure it will be saved, even if out of order.
         EventLastSaved = timestamp->tv_sec;
     }
@@ -308,9 +308,9 @@ static int housesaga_event_getheader (char *buffer, int size, const char *from) 
     }
     return snprintf (buffer, size,
                     "{\"host\":\"%s\",\"proxy\":\"%s\",\"apps\":[\"%s\"],"
-                        "\"timestamp\":%ld,\"%s\":{\"invert\":true%s,\"latest\":%ld",
+                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%ld",
                     housesaga_host(), housesaga_portal(), LogAppName,
-                        (long)time(0), LogAppName, fromparam, EventLatestId);
+                    (long long)time(0), LogAppName, fromparam, EventLatestId);
 }
 
 static char WebFormatBuffer[128+HISTORY_DEPTH*(sizeof(struct EventRecord)+24)] = {0};
@@ -326,9 +326,9 @@ static int housesaga_webaction (void *data) {
     if (!(cursor->timestamp.tv_sec)) return 1;
 
     int wrote = snprintf (WebFormatBuffer+WebFormatLength, size-WebFormatLength,
-                          "%s[%ld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]",
+                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]",
                           WebFormatPrefix,
-                          (long)(cursor->timestamp.tv_sec),
+                          (long long)(cursor->timestamp.tv_sec),
                           (int)(cursor->timestamp.tv_usec/1000),
                           cursor->category,
                           cursor->object,
