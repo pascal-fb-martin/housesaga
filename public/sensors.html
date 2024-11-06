@@ -31,7 +31,7 @@ function sensorShow (response) {
 
    if (!sensorLastId[app]) {
       var name = app[0].toUpperCase() + app.substring(1);
-      var title = response.host + ' - ' + name + ' Events';
+      var title = response.host + ' - ' + name + ' Sensor Data';
       document.getElementsByTagName ('title')[0].innerHTML = title;
       var elements = document.getElementsByClassName ('hostname');
       for (var i = 0; i < elements.length; i++) {
