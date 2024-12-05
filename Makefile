@@ -47,11 +47,11 @@ install-app:
 	chown -R house $(STORE)
 	mkdir -p $(HROOT)/bin
 	mkdir -p /etc/house
-	rm -f $(HROOT)/bin/housesaga
+	rm -f $(HROOT)/bin/housesaga $(HROOT)/bin/events $(HROOT)/bin/houseevents
 	cp housesaga $(HROOT)/bin
-	cp events.tcl $(HROOT)/bin/events
-	chown root:root $(HROOT)/bin/housesaga $(HROOT)/bin/events
-	chmod 755 $(HROOT)/bin/housesaga $(HROOT)/bin/events
+	cp events.tcl $(HROOT)/bin/houseevents
+	chown root:root $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
+	chmod 755 $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
 	mkdir -p $(SHARE)/public/saga
 	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/saga
 	cp public/* $(SHARE)/public/saga

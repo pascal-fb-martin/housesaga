@@ -28,7 +28,7 @@ Access to HouseSaga is not restricted: this service should only be accessible fr
 
 ## Log Files
 
-HouseSaga comes with a command line tool named `events` that makes it easier to read the logs: it knows the (default) root directory for the log files, it selects the log file for the current month and it converts all numeric timestamps to a readable date and time format. This tool takes one argument, to select which type of log to access: -e or events (default), -s for sensor data or -t for trace log.
+HouseSaga comes with a command line tool named `houseevents` that makes it easier to read the logs: it knows the (default) root directory for the log files, it selects the log file for the current month and it converts all numeric timestamps to a readable date and time format. This tool takes one argument, to select which type of log to access: -e or events (default), -s for sensor data or -t for trace log.
 
 Warning: this tool requires Tcl.
 
