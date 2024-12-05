@@ -20,6 +20,7 @@
 HAPP=housesaga
 HROOT=/usr/local
 SHARE=$(HROOT)/share/house
+STORE=/var/lib/house/log
 
 # Application build. --------------------------------------------
 
@@ -42,6 +43,8 @@ housesaga: $(OBJS)
 # Application installation. -------------------------------------
 
 install-app:
+	mkdir -p $(STORE)
+	chown -R house $(STORE)
 	mkdir -p $(HROOT)/bin
 	mkdir -p /etc/house
 	rm -f $(HROOT)/bin/housesaga
