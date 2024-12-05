@@ -49,8 +49,9 @@ install-app:
 	mkdir -p /etc/house
 	rm -f $(HROOT)/bin/housesaga
 	cp housesaga $(HROOT)/bin
-	chown root:root $(HROOT)/bin/housesaga
-	chmod 755 $(HROOT)/bin/housesaga
+	cp events.tcl $(HROOT)/bin/events
+	chown root:root $(HROOT)/bin/housesaga $(HROOT)/bin/events
+	chmod 755 $(HROOT)/bin/housesaga $(HROOT)/bin/events
 	mkdir -p $(SHARE)/public/saga
 	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/saga
 	cp public/* $(SHARE)/public/saga
