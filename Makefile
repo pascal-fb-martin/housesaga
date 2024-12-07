@@ -58,8 +58,6 @@ install-app:
 	chown root:root $(SHARE)/public/saga/*
 	chmod 644 $(SHARE)/public/saga/*
 	touch /etc/default/housesaga
-	mkdir -p /var/lib/house/config /var/lib/house/scripts
-	chmod 755 /var/lib/house/config /var/lib/house/scripts
 
 uninstall-app:
 	rm -rf $(SHARE)/public/saga
