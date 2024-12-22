@@ -1,5 +1,5 @@
 [Unit]
-Description=the house configuration repository
+Description=The house log consolidation and storage service
 After=network-online.target houseportal.service
 StartLimitIntervalSec=500
 StartLimitBurst=5

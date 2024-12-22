@@ -1,0 +1,62 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:        housesaga
+# Required-Start:  $network $remote_fs $syslog $houseportal
+# Required-Stop:   $network $remote_fs $syslog $houseportal
+# Default-Start:   2 3 4 5
+# Default-Stop: 
+# Short-Description: Web service for log consolidation and storage
+# Description:       A web service that consolidates and saves to permanent storage logs from other House services.
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+. /lib/lsb/init-functions
+
+DAEMON=/usr/local/bin/housesaga
+PIDFILE=/var/run/housesaga.pid
+
+test -x $DAEMON || exit 0
+
+OPTS=
+
+if [ -r /etc/default/housesaga ]; then
+	. /etc/default/housesaga
+fi
+
+
+case $1 in
+	start)
+		log_daemon_msg "Starting the HouseSaga service" "housesaga"
+		start-stop-daemon --start --quiet --oknodo --background --pidfile $PIDFILE --make-pidfile --startas $DAEMON -- $OPTS
+		log_end_msg $?
+  		;;
+	stop)
+		log_daemon_msg "Stopping the HouseSaga service" "housesaga"
+		start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE --retry=TERM/30/KILL/5 --exec $DAEMON
+		log_end_msg $?
+		rm -f $PIDFILE
+  		;;
+	restart|force-reload)
+		$0 stop && sleep 2 && $0 start
+  		;;
+	try-restart)
+		if $0 status >/dev/null; then
+			$0 restart
+		else
+			exit 0
+		fi
+		;;
+	reload)
+		exit 3
+		;;
+	status)
+		status_of_proc $DAEMON "HouseSaga service"
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|try-restart|force-reload|status}"
+		exit 2
+		;;
+esac
+
