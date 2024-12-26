@@ -47,6 +47,7 @@
 #include "housesaga_trace.h"
 #include "housesaga_sensor.h"
 #include "housesaga_event.h"
+#include "housesaga_metrics.h"
 
 static int use_houseportal = 0;
 
@@ -122,6 +123,7 @@ int main (int argc, const char **argv) {
     housesaga_trace_initialize (argc, argv);
     housesaga_event_initialize (argc, argv);
     housesaga_sensor_initialize (argc, argv);
+    housesaga_metrics_initialize (argc, argv);
     housesaga_storage_initialize (argc, argv);
 
     echttp_static_route ("/", "/usr/local/share/house/public");

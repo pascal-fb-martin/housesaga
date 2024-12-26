@@ -27,8 +27,8 @@
  * void housesaga_storage_save (const char *logtype, time_t timestamp,
  *                              const char *header, const char *record);
  *
- *    Save one CSV record to the specified log type file. The header is
- *    written only once per file.
+ *    Save one CSV record to the specified log type file. The header, if
+ *    not null, is written only once per file (if the file is empty).
  *
  * void housesaga_storage_flush (void);
  *
@@ -121,7 +121,7 @@ void housesaga_storage_save (const char *logtype, time_t timestamp,
     if (!LogStorageFile) {
         LogStorageFile = housesaga_storage_open (logtype, year, month);
         if (! LogStorageFile) return; // Hoops!
-        if (ftell (LogStorageFile) == 0) {
+        if (header && (ftell (LogStorageFile) == 0)) {
             fprintf (LogStorageFile, "%s\n", header);
         }
     }

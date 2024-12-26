@@ -24,7 +24,12 @@ STORE=/var/lib/house/log
 
 # Application build. --------------------------------------------
 
-OBJS= housesaga.o housesaga_event.o housesaga_trace.o housesaga_sensor.o housesaga_storage.o
+OBJS= housesaga.o \
+      housesaga_event.o \
+      housesaga_trace.o \
+      housesaga_sensor.o \
+      housesaga_metrics.o \
+      housesaga_storage.o
 LIBOJS=
 
 all: housesaga

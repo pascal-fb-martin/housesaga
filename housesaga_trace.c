@@ -61,7 +61,6 @@
 #include <time.h>
 
 #include "echttp.h"
-// #include "echttp_static.h"
 #include "echttp_json.h"
 #include "houselog.h"
 

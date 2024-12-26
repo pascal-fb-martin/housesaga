@@ -30,7 +30,7 @@ Access to HouseSaga is not restricted: this service should only be accessible fr
 
 HouseSaga comes with a command line tool named `houseevents` that makes it easier to read the logs: it knows the (default) root directory for the log files, it selects the log file for the current month and it converts all numeric timestamps to a readable date and time format. This tool takes one argument, to select which type of log to access: -e or events (default), -s for sensor data or -t for trace log.
 
-Warning: this tool requires Tcl.
+Warning: this tool requires Tcl. It cannot process metrics logs.
 
 By convention there are several types of logs commonly used with HouseSaga:
 * Event logs.
@@ -40,16 +40,9 @@ By convention there are several types of logs commonly used with HouseSaga:
 
 Note that this service consolidates records from all sources into a single log for each type of log. There is one single event log aggregating events from all sources, one single trace log aggregating traces from all sources, etc.
 
-All logs share a few common properties:
+The event, trace and sensor logs share a few common properties:
 * Use the CSV format (text/csv). The first line contains the names of columns.
 * One field is named "TIMESTAMP" and contains a UNIX system time in the format ssssss[.mmm].
-
-A measure log is a set of records where each record contains an identifier, a value and a unit fields (optional). These are used to collect some real-world external measurements. A data collection csv record contains at least the following field:
-- TIMESTAMP,
-- LOCATION,
-- NAME,
-- VALUE,
-- UNIT.
 
 The value of UNIT may be empty.
 
@@ -72,7 +65,16 @@ A trace log records an history of status and actions that describe how, and how 
 - LEVEL,
 - DESCRIPTION.
 
+A sensor log is a set of records where each record contains an identifier, a value and a unit fields (optional). These are used to collect some real-world external measurements. A data collection csv record contains at least the following field:
+- TIMESTAMP,
+- LOCATION,
+- NAME,
+- VALUE,
+- UNIT.
+
 If there are additional fields compare to what is described above, these fields will be stored, but not used by the HouseSaga's web interface.
+
+The metrics log is organized differently, as a sequence of JSON objects.
 
 More types of logs can be used, but may not be visualized in the the HouseSaga's web interface.
 
@@ -126,6 +128,13 @@ POST /saga/log/sensor/data
 Push a new list of events to HouseSaga, in JSON format.
 
 Each POST appends more sensor records to the log. HouseSaga will infer the year and month from each record timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each record.
+
+## Web API for Metrics
+
+```
+POST /saga/log/metrics
+```
+Push one more metrics JSON object to the log. HouseSaga does not decode or validate the JSON object's content.
 
 ## Configuration
 
