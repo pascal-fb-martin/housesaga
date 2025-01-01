@@ -92,7 +92,18 @@ More types of logs can be used, but may not be visualized in the the HouseSaga's
 
 If multiple HouseSaga services are active, the client services should transmit their logs to all detected, on a best effort basis. This means that if one HouseSaga service fails and then restarts, it might be missing some logs. As long as not all HouseSaga services failed, the data will have been saved at least once. It might be necessary to query multiple HouseSaga services to recover all log data.
 
-## Web API for Events
+## Web API
+
+### web API for archive
+
+```
+GET /saga/archive/<year>/<month>/<day>/event.csv
+GET /saga/archive/<year>/<month>/<day>/trace.csv
+GET /saga/archive/<year>/<month>/<day>/sensor.csv
+
+Access the specified log file. (This does not work for metrics--for now.)
+
+### Web API for Events
 
 ```
 GET /saga/log/latest
@@ -111,14 +122,14 @@ Push a new list of events to HouseSaga. The format of the events is the same as 
 
 Each POST appends more events to the log. HouseSaga will infer the year and month from each event timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each event.
 
-## Web API for Traces
+### Web API for Traces
 
 ```
 POST /saga/log/traces
 ```
 Push a new list of traces to HouseSaga. These traces are immediately written to storage. This means that traces might be stored out of their original sequence, depending on the clients buffer mechanisms.
 
-## Web API for sensor data
+### Web API for sensor data
 
 ```
 GET /saga/log/sensor/check
@@ -139,7 +150,7 @@ Push a new list of events to HouseSaga, in JSON format.
 
 Each POST appends more sensor records to the log. HouseSaga will infer the year and month from each record timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each record.
 
-## Web API for Metrics
+### Web API for Metrics
 
 ```
 POST /saga/log/metrics
