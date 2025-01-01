@@ -67,6 +67,7 @@
 #include <time.h>
 
 #include "echttp.h"
+#include "echttp_static.h"
 #include "houselog.h"
 
 #include "housesaga.h"
@@ -148,5 +149,7 @@ void housesaga_storage_initialize (int argc, const char **argv) {
             continue;
         }
     }
+    echttp_static_route ("/saga/archive", LogStorageFolder);
+    echttp_static_route ("/archive", LogStorageFolder);
 }
 
