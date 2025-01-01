@@ -78,48 +78,50 @@ static const char *LogStorageType = 0;
 static FILE *LogStorageFile = 0;
 static int LogStoragePeriod = 0;
 
-static FILE *housesaga_storage_open (const char *logtype, int year, int month) {
+static FILE *housesaga_storage_open (const char *logtype,
+                                     int year, int month, int day) {
 
-    char path[512];
-    char fullname[512];
+    int cursor;
+    char path[1024];
 
-    mkdir (LogStorageFolder, 0777); // Ignore error: fopen() will fail anyway.
+    // Ignore all mkdir() errors: fopen() will fail anyway.
+    //
+    mkdir (LogStorageFolder, 0777);
 
-    snprintf (path, sizeof(path), "%s/%04d", LogStorageFolder, year);
-    mkdir (path, 0777); // Ignore error: fopen() will fail anyway.
+    cursor = snprintf (path, sizeof(path), "%s/%04d", LogStorageFolder, year);
+    mkdir (path, 0777);
 
-    snprintf (path, sizeof(path),
-              "%s/%04d/%02d", LogStorageFolder, year, month);
-    mkdir (path, 0777); // Ignore error: fopen() will fail anyway.
+    cursor += snprintf (path+cursor, sizeof(path)-cursor, "/%02d", month);
+    mkdir (path, 0777);
 
-    snprintf (fullname, sizeof(fullname), "%s/%s.csv", path, logtype);
-    return fopen (fullname, "a");
+    cursor += snprintf (path+cursor, sizeof(path)-cursor, "/%02d", day);
+    mkdir (path, 0777);
+
+    snprintf (path+cursor, sizeof(path)-cursor, "/%s.csv", logtype);
+    return fopen (path, "a");
 }
 
 void housesaga_storage_save (const char *logtype, time_t timestamp,
                              const char *header, const char *record) {
 
-    if (LogStorageType) {
+    struct tm local = *localtime (&timestamp);
+    int year = 1900 + local.tm_year;
+    int month = local.tm_mon + 1;
+    int day = local.tm_mday;
+    int period = (year * 100 + month) * 100 + day; // Make a unique number.
+
+    if (period != LogStoragePeriod) {
+        housesaga_storage_flush ();
+    } else if (LogStorageType) {
         if (strcmp (logtype, LogStorageType)) { // Switched type?
             housesaga_storage_flush (); // Don't mix data types in the same file
         }
     }
+    LogStoragePeriod = period;
     LogStorageType = logtype;
 
-    struct tm local = *localtime (&timestamp);
-    int year = 1900 + local.tm_year;
-    int month = local.tm_mon + 1;
-    int period = year * 100 + month; // All we want is something unique.
-
-    if (period != LogStoragePeriod) {
-        if (LogStorageFile) {
-            fclose (LogStorageFile);
-            LogStorageFile = 0;
-        }
-        LogStoragePeriod = period;
-    }
     if (!LogStorageFile) {
-        LogStorageFile = housesaga_storage_open (logtype, year, month);
+        LogStorageFile = housesaga_storage_open (logtype, year, month, day);
         if (! LogStorageFile) return; // Hoops!
         if (header && (ftell (LogStorageFile) == 0)) {
             fprintf (LogStorageFile, "%s\n", header);
@@ -130,7 +132,6 @@ void housesaga_storage_save (const char *logtype, time_t timestamp,
 
 void housesaga_storage_flush (void) {
 
-    if (!LogStorageType) return;
     if (LogStorageFile) {
         fclose (LogStorageFile);
         LogStorageFile = 0;

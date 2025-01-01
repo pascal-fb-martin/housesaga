@@ -1,0 +1,8 @@
+#!/bin/bash
+cd `dirname $0`
+parent=`pwd`
+parent=`dirname $parent`
+mkdir -p $parent/donotcommit
+../housesaga --log-path=$parent/donotcommit -debug
+
+

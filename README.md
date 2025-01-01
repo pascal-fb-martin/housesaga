@@ -28,7 +28,17 @@ Access to HouseSaga is not restricted: this service should only be accessible fr
 
 ## Log Files
 
-HouseSaga comes with a command line tool named `houseevents` that makes it easier to read the logs: it knows the (default) root directory for the log files, it selects the log file for the current month and it converts all numeric timestamps to a readable date and time format. This tool takes one argument, to select which type of log to access: -e or events (default), -s for sensor data or -t for trace log.
+HouseSaga comes with a command line tool named `houseevents` that makes it easier to read the logs: it knows the (default) root directory for the log files, it selects the log file for the current month and it converts all numeric timestamps to a readable date and time format. This tool syntax is:
+
+```
+   houseevents [-e|-s|-t] [year [month [day]]]
+```
+The options are:
+* -e: show events. (Default)
+* -s: show sensor data.
+* -t: show traces.
+
+If no year is provided, the default is the current day. If only the year is provided, day and month default to 12/31. If only the year and month are provided, the day will default to 31 (I know..).
 
 Warning: this tool requires Tcl. It cannot process metrics logs.
 
@@ -36,9 +46,11 @@ By convention there are several types of logs commonly used with HouseSaga:
 * Event logs.
 * Trace logs.
 * Sensor measurement logs.
-* Metrics logs. (not supported for now)
+* Metrics logs.
 
-Note that this service consolidates records from all sources into a single log for each type of log. There is one single event log aggregating events from all sources, one single trace log aggregating traces from all sources, etc.
+Note that this service consolidates records from all sources into a single daily file for each type of log. There is one daily event log aggregating events from all sources, one daily trace log aggregating traces from all sources, etc.
+
+All log files are organized in daily sets, i.e. a file is created each day in a _year_/_month_/_day_ subdirectory. The default root of that tree is /var/lib/house/log.
 
 The event, trace and sensor logs share a few common properties:
 * Use the CSV format (text/csv). The first line contains the names of columns.
@@ -46,7 +58,7 @@ The event, trace and sensor logs share a few common properties:
 
 The value of UNIT may be empty.
 
-An event log records an history of status and actions that are related to the purpose of the service. Interpreting an event should not require any knowledge of the application's implementation, only an understanding of the purpose and configuration of the service. The event log is relevant to the user of the service. An event csv record contains at least the following fields:
+An event log records an history of status and actions that are related to the purpose of the service. Interpreting an event should not require any knowledge of the application's source code, only an understanding of the purpose and user configuration of the service. The event log is relevant to the user of the service. An event csv record contains at least the following fields:
 - TIMESTAMP,
 - HOST,
 - APP,
@@ -55,7 +67,7 @@ An event log records an history of status and actions that are related to the pu
 - ACTION,
 - DESCRIPTION.
 
-A trace log records an history of status and actions that describe how, and how well, the service is fulfilling its purpose. The trace log is relevant to the developper of the application, or the system administrator of the service. A trace csv record contains at least the following fields:
+A trace log records an history of status and actions that describe how, and how well, the service is fulfilling its purpose. The trace log is relevant to the developer of the application, or to the system administrator of the service. A trace csv record contains at least the following fields:
 - TIMESTAMP,
 - HOST,
 - APP,
@@ -79,8 +91,6 @@ The metrics log is organized differently, as a sequence of JSON objects.
 More types of logs can be used, but may not be visualized in the the HouseSaga's web interface.
 
 If multiple HouseSaga services are active, the client services should transmit their logs to all detected, on a best effort basis. This means that if one HouseSaga service fails and then restarts, it might be missing some logs. As long as not all HouseSaga services failed, the data will have been saved at least once. It might be necessary to query multiple HouseSaga services to recover all log data.
-
-HouseSaga stores all log files in /var/lib/house/log. The directory organization below that directory matches the HTTP URL.
 
 ## Web API for Events
 
