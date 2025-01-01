@@ -100,6 +100,7 @@ If multiple HouseSaga services are active, the client services should transmit t
 GET /saga/archive/<year>/<month>/<day>/event.csv
 GET /saga/archive/<year>/<month>/<day>/trace.csv
 GET /saga/archive/<year>/<month>/<day>/sensor.csv
+```
 
 Access the specified log file. (This does not work for metrics--for now.)
 
