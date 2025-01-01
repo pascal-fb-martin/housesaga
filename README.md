@@ -94,7 +94,7 @@ If multiple HouseSaga services are active, the client services should transmit t
 
 ## Web API
 
-### web API for archive
+### web API for Archive
 
 ```
 GET /saga/archive/<year>/<month>/<day>/event.csv
