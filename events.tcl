@@ -26,6 +26,17 @@
 
 set logroot /var/lib/house/log
 
+set filetype event.csv
+set dateargv {}
+
+foreach option $argv {
+   if {[string match "X-e" "X$option"]} {set filetype event.csv}
+   if {[string match "X-s" "X$option"]} {set filetype sensor.csv}
+   if {[string match "X-t" "X$option"]} {set filetype trace.csv}
+   if {[string match {X[0-9]*} "X$option"]} {lappend dateargv [format {%02d} $option]}
+}
+set argv $dateargv
+
 set now [clock seconds]
 
 set year [clock format $now -format "%Y"]
@@ -40,17 +51,9 @@ if {[llength $argv] > 1} {
     set month [lindex $argv 1]
     set day 31
 }
-if {[llength $argv] > 2} {set day [lindex $argv 1]}
+if {[llength $argv] > 2} {set day [lindex $argv 2]}
 set pathm [file join $logroot $year $month]
 set pathd [file join $logroot $year $month $day]
-
-set filetype event.csv
-
-foreach option $argv {
-   if {[string match "X$option" "X-e"]} {set filetype event.csv}
-   if {[string match "X$option" "X-s"]} {set filetype sensor.csv}
-   if {[string match "X$option" "X-t"]} {set filetype trace.csv}
-}
 
 proc convertcsv {name} {
    set fd [open $name r]
