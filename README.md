@@ -97,6 +97,18 @@ If multiple HouseSaga services are active, the client services should transmit t
 ### web API for Archive
 
 ```
+GET /saga/monthly
+```
+
+Returns a JSON array, one element per day of the requested month. Each element is a boolean: true if there were files archived for this day, false otherwise. The array has one more element than days in this month: element at index 0 is always false and should not be used.
+
+```
+GET /saga/daily
+```
+
+Returns a JSON array with the list of archive files, using a relative path _year_/_month_/_day_/_file_.
+
+```
 GET /saga/archive/<year>/<month>/<day>/event.csv
 GET /saga/archive/<year>/<month>/<day>/trace.csv
 GET /saga/archive/<year>/<month>/<day>/sensor.csv

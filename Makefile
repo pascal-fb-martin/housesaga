@@ -47,7 +47,14 @@ housesaga: $(OBJS)
 
 # Application installation. -------------------------------------
 
-install-app:
+install-ui:
+	mkdir -p $(SHARE)/public/saga
+	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/saga
+	cp public/* $(SHARE)/public/saga
+	chown root:root $(SHARE)/public/saga/*
+	chmod 644 $(SHARE)/public/saga/*
+
+install-app: install-ui
 	mkdir -p $(STORE)
 	chown -R house $(STORE)
 	mkdir -p $(HROOT)/bin
@@ -57,11 +64,6 @@ install-app:
 	cp events.tcl $(HROOT)/bin/houseevents
 	chown root:root $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
 	chmod 755 $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
-	mkdir -p $(SHARE)/public/saga
-	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/saga
-	cp public/* $(SHARE)/public/saga
-	chown root:root $(SHARE)/public/saga/*
-	chmod 644 $(SHARE)/public/saga/*
 	touch /etc/default/housesaga
 
 uninstall-app:

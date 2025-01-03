@@ -6,12 +6,12 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor,
@@ -65,6 +65,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <time.h>
+#include <dirent.h>
 
 #include "echttp.h"
 #include "echttp_static.h"
@@ -141,6 +142,123 @@ void housesaga_storage_flush (void) {
     LogStorageType = 0;
 }
 
+static const char *saga_storage_monthly (const char *method, const char *uri,
+                                         const char *data, int length) {
+
+    int i;
+    static char buffer[2048];
+
+    const char *year = echttp_parameter_get("year");
+    const char *month = echttp_parameter_get("month");
+    int cursor = 0;
+
+    if (!year || !month) {
+        echttp_error (404, "Not Found");
+        return "";
+    }
+    if (month[0] == '0') month += 1;
+
+    struct tm local;
+    // The reference time must be slightly past 2 AM to avoid being fooled
+    // by a daylight saving time change in the fall.
+    local.tm_sec = local.tm_min = local.tm_hour = 2; // 2:02:02 AM
+    local.tm_mday = 1;
+    local.tm_mon = atoi(month)-1;
+    local.tm_year = atoi(year)-1900;
+    local.tm_isdst = -1;
+    time_t base = mktime (&local);
+    if (base < 0) {
+        echttp_error (404, "Not Found");
+        return "";
+    }
+
+    cursor = snprintf (buffer, sizeof(buffer), "[false");
+
+    int referencemonth = local.tm_mon;
+    struct stat info;
+    char path[1024];
+    int  tail = snprintf (path, sizeof(path), "%s/%s/%02d/",
+                          LogStorageFolder, year, local.tm_mon+1);
+
+    for (i = 1; i <= 31; ++i) {
+        const char *found = ",false";
+        snprintf (path+tail, sizeof(path)-tail, "%02d", local.tm_mday);
+        if (!stat (path, &info)) {
+            if ((info.st_mode & S_IFMT) == S_IFDIR) {
+                found = ",true";
+            }
+        }
+        cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor, found);
+        if (cursor >= sizeof(buffer)) goto nospace;
+
+        base += 24*60*60;
+        local = *localtime (&base);
+        if (local.tm_mon != referencemonth) break;
+    }
+    cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor, "]");
+    if (cursor >= sizeof(buffer)) goto nospace;
+    echttp_content_type_json();
+    return buffer;
+
+nospace:
+    echttp_error (413, "Out Of Space");
+    return "HTTP Error 413: Out of space, response too large";
+}
+
+static const char *saga_storage_daily (const char *method, const char *uri,
+                                       const char *data, int length) {
+    static char buffer[131072];
+
+    char path[1024];
+    int  tail;
+    char filepath[1024];
+    struct stat info;
+
+    int  cursor;
+    const char *year = echttp_parameter_get("year");
+    const char *month = echttp_parameter_get("month");
+    const char *day = echttp_parameter_get("day");
+
+    if (month[0] == '0') month += 1;
+    if (day[0] == '0') day += 1;
+
+    snprintf (path, sizeof(path), "%s/%s/%02d/%02d",
+              LogStorageFolder, year, atoi(month), atoi(day));
+    DIR *dir = opendir (path);
+    if (!dir) {
+        echttp_error (404, "Not Found");
+        return "";
+    }
+    tail = snprintf (filepath, sizeof(filepath),
+                     "%s/%02d/%02d/", year, atoi(month), atoi(day));
+
+    const char *sep = "";
+    cursor = snprintf (buffer, sizeof(buffer), "[");
+
+    for (;;) {
+        struct dirent *p = readdir(dir);
+        if (!p) break;
+        if (p->d_name[0] == '.') continue;
+
+        cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor,
+                            "%s\"%s%s\"", sep, filepath, p->d_name);
+        sep = ",";
+        if (cursor >= sizeof(buffer)) goto nospace;
+    }
+
+    cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor, "]");
+    if (cursor >= sizeof(buffer)) goto nospace;
+
+    closedir(dir);
+    echttp_content_type_json();
+    return buffer;
+
+nospace:
+    closedir(dir);
+    echttp_error (413, "Out Of Space");
+    return "HTTP Error 413: Out of space, response too large";
+}
+
 void housesaga_storage_initialize (int argc, const char **argv) {
     int i;
     for (i = 1; i < argc; ++i) {
@@ -149,7 +267,12 @@ void housesaga_storage_initialize (int argc, const char **argv) {
             continue;
         }
     }
+    echttp_route_uri ("/saga/monthly", saga_storage_monthly);
+    echttp_route_uri ("/saga/daily", saga_storage_daily);
     echttp_static_route ("/saga/archive", LogStorageFolder);
+
+    echttp_route_uri ("/monthly", saga_storage_monthly);
+    echttp_route_uri ("/daily", saga_storage_daily);
     echttp_static_route ("/archive", LogStorageFolder);
 }
 
