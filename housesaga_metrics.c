@@ -44,7 +44,7 @@ static const char *housesaga_webmetrics (const char *method, const char *uri,
 
     if (strcmp (method, "POST")) return ""; // Only POST is supported.
 
-    housesaga_storage_save ("metrics", time(0), 0, data);
+    housesaga_storage_save ("metrics.json", time(0), 0, data);
     housesaga_storage_flush ();
 
     return "";

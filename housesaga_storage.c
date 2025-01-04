@@ -99,7 +99,11 @@ static FILE *housesaga_storage_open (const char *logtype,
     cursor += snprintf (path+cursor, sizeof(path)-cursor, "/%02d", day);
     mkdir (path, 0777);
 
-    snprintf (path+cursor, sizeof(path)-cursor, "/%s.csv", logtype);
+    if (strchr (logtype, '.')) {
+        snprintf (path+cursor, sizeof(path)-cursor, "/%s", logtype);
+    } else {
+        snprintf (path+cursor, sizeof(path)-cursor, "/%s.csv", logtype);
+    }
     return fopen (path, "a");
 }
 
