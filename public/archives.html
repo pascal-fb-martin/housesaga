@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>DVR Log</title>
+<title>Archives</title>
 <link rel=stylesheet type="text/css" href="/house.css" title="House">
 <script language="javascript" type="text/javascript">
 
@@ -11,8 +11,6 @@ var monthName = new Array('January','February','March','April','May','June','Jul
 var currentDate = new Date();
 var currentSelection = null;
 var currentDayArchive = null;
-
-var cameraSelector = new Array();
 
 function previousMonth () {
    var month = currentDate.getMonth();
@@ -239,10 +237,6 @@ window.onresize = resizeDayArchive;
                </table>
             </td>
             <td width="20%">
-            </td>
-            <td>
-               <table class="cameraselector">
-               </table>
             </td>
          </tr>
       </table>
