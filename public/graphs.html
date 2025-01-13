@@ -146,8 +146,10 @@ function showDayArchiveCPU (data) {
     var step = 1152 / data.length;
     var start = 20 + (step / 2);
     for (var i = 0; i < data.length; ++i) {
-        if (!data[i].busy) data[i].busy = [0,'%'];
-        var point = showPercentiles (chart, start, step, i, data[i].busy);
+        var busy;
+        if ((!data[i]) || (!data[i].busy)) busy = [0,'%'];
+        else busy = data[i].busy;
+        var point = showPercentiles (chart, start, step, i, busy);
         if (point) median += point;
     }
     if (median.length > 0) showPolyLine (chart, median, '#000000');
@@ -159,7 +161,7 @@ function showDayArchiveRAM (data) {
     var step = 1152 / data.length;
     var start = 20 + (step / 2);
     for (var i = 0; i < data.length; ++i) {
-        if (!data[i].available) data[i].busy = [0,'MB'];
+        if (!data[i].available) data[i].available = [0,'MB'];
         var percent = inversePercentage (toPercentage(data[i].size[0], data[i].available));
         var point = showPercentiles (chart, start, step, i, percent);
         if (point) median += point;
