@@ -22,6 +22,15 @@ function clearDayHosts () {
    return table;
 }
 
+function clearDayArchive () {
+   var elements = document.getElementsByClassName ('graph');
+
+   // Remove all current content.
+   for (var i = elements.length - 1; i >= 0; --i) {
+      elements[i].parentElement.removeChild(elements[i]);
+   }
+}
+
 function selectHost (name) {
     SelectedHost = name;
     showDayArchive ();
@@ -51,23 +60,24 @@ function showDayHosts () {
    table.appendChild(line);
    line = null;
 
+   var erase = true;
    for (var i = 0; i < hosts.length; ++i) {
        if ((i % columns) == 0) {
            if (line) table.appendChild(line);
            line = document.createElement("tr");
        }
-       line.appendChild(radioColumn(hosts[i]));
+       var options = '';
+       if (hosts[i] == SelectedHost) {
+           options = ' checked';
+           erase = false;
+       }
+       line.appendChild(radioColumn(hosts[i], options));
+   }
+   if (erase) {
+       SelectedHost = null;
+       clearDayArchive();
    }
    if (line) table.appendChild(line);
-}
-
-function clearDayArchive () {
-   var elements = document.getElementsByClassName ('graph');
-
-   // Remove all current content.
-   for (var i = elements.length - 1; i >= 0; --i) {
-      elements[i].parentElement.removeChild(elements[i]);
-   }
 }
 
 function showLine (chart, x1, y1, x2, y2, width, color) {
@@ -180,6 +190,7 @@ function showDayArchive () {
    clearDayArchive();
    if (! CurrentDayArchive) return;
    if (! SelectedHost) return;
+   if (! CurrentDayArchive[SelectedHost]) return;
 
    showDayArchiveCPU (CurrentDayArchive[SelectedHost].cpu);
    showDayArchiveRAM (CurrentDayArchive[SelectedHost].memory);
@@ -216,8 +227,14 @@ function getDayArchive (folder) {
    var command = new XMLHttpRequest();
    command.open("GET", '/saga/archive/'+folder+'/metrics.json');
    command.onreadystatechange = function () {
-      if (command.readyState === 4 && command.status === 200) {
-         decodeArchive (command.responseText);
+      if (command.readyState === 4) {
+         if (command.status === 200) {
+             decodeArchive (command.responseText);
+         } else {
+             clearDayHosts ();
+             clearDayArchive ();
+             CurrentDayArchive = null;
+         }
       }
    }
    command.send(null);
