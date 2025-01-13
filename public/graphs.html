@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Graphs</title>
+<link rel=stylesheet type="text/css" href="/house.css" title="House">
+<script language="javascript" type="text/javascript">
+
+var dayName = new Array('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+var monthName = new Array('January','February','March','April','May','June','July','August','September','October','November','December');
+
+var CurrentDate = new Date();
+var CurrentSelection = null;
+var CurrentDayArchive = null;
+
+var SelectedHost = null;
+
+function clearDayHosts () {
+   var table = document.getElementsByClassName ('hostselector')[0];
+   while (table.childNodes.length > 1) {
+       table.removeChild(table.childNodes[1]);
+   }
+   return table;
+}
+
+function selectHost (name) {
+    SelectedHost = name;
+    showDayArchive ();
+}
+
+function radioColumn (n, options) {
+    var column = document.createElement("td");
+    if (!options) options = '';
+    column.innerHTML =
+        '<div style="display: inline-block;"><input type="radio" id="host_'+n+'" name="hosts" value="'+n+'" '+options+' onchange="selectHost(this.value)"/></div> <div style="display: inline-block;"><label for="host_'+n+'">'+n+'</label></div>'
+    return column;
+}
+
+function showDayHosts () {
+
+   var hosts = Object.keys(CurrentDayArchive);
+   hosts.sort();
+
+   var columns = Math.ceil(hosts.length / 6); // 6 lines.
+
+   var table = clearDayHosts ();
+   var line = document.createElement("tr");
+   var column = document.createElement("th");
+   column.colspan = columns;
+   column.innerHTML = 'HOSTS';
+   line.appendChild(column);
+   table.appendChild(line);
+   line = null;
+
+   for (var i = 0; i < hosts.length; ++i) {
+       if ((i % columns) == 0) {
+           if (line) table.appendChild(line);
+           line = document.createElement("tr");
+       }
+       line.appendChild(radioColumn(hosts[i]));
+   }
+   if (line) table.appendChild(line);
+}
+
+function clearDayArchive () {
+   var elements = document.getElementsByClassName ('graph');
+
+   // Remove all current content.
+   for (var i = elements.length - 1; i >= 0; --i) {
+      elements[i].parentElement.removeChild(elements[i]);
+   }
+}
+
+function showLine (chart, x1, y1, x2, y2, width, color) {
+
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('class', 'graph');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', ''+width);
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    chart.appendChild(line);
+}
+
+function showPolyLine (chart, median, color) {
+
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('class', 'graph');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('points', median);
+    chart.appendChild(line);
+}
+
+function toY (v) {
+    return 2 * (110 - v);
+}
+
+function inversePercentage (data) {
+    var i = data.length - 1;
+    while (--i >= 0) {
+        data[i] = 100 - data[i];
+    }
+    return data;
+}
+
+function toPercentage (reference, data) {
+    if (!data) return new Array(); // Empty.
+    var result = data.slice(0);
+    var i = result.length - 1;
+    if (!reference) {
+        while (--i >= 0) {
+            result[i] = 100;
+        }
+    } else {
+        while (--i >= 0) {
+            result[i] = Math.round((100 * result[i]) / reference);
+        }
+    }
+    return result;
+}
+
+function showPercentiles (chart, start, step, i, data) {
+    var green = '#10a010';
+    var x = Math.round(start + (step * i));
+    if (! data) return '' + x + ' ' + toY(0) + ' ';
+    switch (data.length) {
+        case 4:
+            showLine (chart, x, toY(data[0]), x, toY(data[2]), step, green);
+            return '' + x + ' ' + toY(data[1]) + ' ';
+        case 3:
+            showLine (chart, x, toY(data[0]), x, toY(data[1]), step, green);
+            break;
+        case 2:
+            return '' + x + ' ' + toY(data[0]) + ' ';
+    }
+    return null;
+}
+
+function showDayArchiveCPU (data) {
+    var median = '';
+    var chart = document.getElementsByClassName ('chartcpu')[0];
+    var step = 1152 / data.length;
+    var start = 20 + (step / 2);
+    for (var i = 0; i < data.length; ++i) {
+        var point = showPercentiles (chart, start, step, i, data[i].busy);
+        if (point) median += point;
+    }
+    if (median.length > 0) showPolyLine (chart, median, '#000000');
+}
+
+function showDayArchiveRAM (data) {
+    var median = '';
+    var chart = document.getElementsByClassName ('chartram')[0];
+    var step = 1152 / data.length;
+    var start = 20 + (step / 2);
+    for (var i = 0; i < data.length; ++i) {
+        var percent = inversePercentage (toPercentage(data[i].size[0], data[i].available));
+        var point = showPercentiles (chart, start, step, i, percent);
+        if (point) median += point;
+    }
+    if (median.length > 0) showPolyLine (chart, median, '#000000');
+}
+
+function showDayArchiveDisk (data) {
+}
+
+function showDayArchiveNet (data) {
+}
+
+function showDayArchive () {
+
+   clearDayArchive();
+   if (! CurrentDayArchive) return;
+   if (! SelectedHost) return;
+
+   showDayArchiveCPU (CurrentDayArchive[SelectedHost].cpu);
+   showDayArchiveRAM (CurrentDayArchive[SelectedHost].memory);
+   showDayArchiveDisk (CurrentDayArchive[SelectedHost].disk);
+   showDayArchiveNet (CurrentDayArchive[SelectedHost].net);
+}
+
+function decodeArchive (text) {
+    var lines = text.split(/\r?\n/);
+    var result = new Object();
+    for (var i = lines.length-1; i >= 0; --i) {
+        if (!lines[i]) continue;
+        var data = JSON.parse(lines[i]);
+        if (!result[data.host]) {
+            result[data.host] = new Object();
+            result[data.host].cpu = new Array();
+            result[data.host].memory = new Array();
+            result[data.host].storage = new Array();
+            result[data.host].disk = new Array();
+            result[data.host].net = new Array();
+        }
+        result[data.host].cpu.unshift(data.metrics.cpu);
+        result[data.host].memory.unshift(data.metrics.memory);
+        result[data.host].storage.unshift(data.metrics.storage);
+        result[data.host].disk.unshift(data.metrics.disk);
+        result[data.host].net.unshift(data.metrics.net);
+    }
+    CurrentDayArchive = result;
+    showDayHosts ();
+    showDayArchive ();
+}
+
+function getDayArchive (folder) {
+   var command = new XMLHttpRequest();
+   command.open("GET", '/saga/archive/'+folder+'/metrics.json');
+   command.onreadystatechange = function () {
+      if (command.readyState === 4 && command.status === 200) {
+         decodeArchive (command.responseText);
+      }
+   }
+   command.send(null);
+}
+
+function loadDayArchive () {
+
+   // Manage the selection in the calendar.
+   if (CurrentSelection) {
+      CurrentSelection.innerHTML = ''+CurrentSelection.day;
+      CurrentSelection.className = '';
+   }
+   this.innerHTML = '<b>'+this.day+'</b>';
+   CurrentSelection = this;
+
+   this.className = 'houseactive';
+
+   var year = CurrentDate.getYear() + 1900;
+   var month = CurrentDate.getMonth() + 1;
+   month = month.toString().padStart(2,'0');
+   var day = this.day.padStart(2,'0')
+   getDayArchive (''+year+'/'+month+'/'+day);
+}
+
+function resizeDayArchive () {
+   if (CurrentDayArchive)
+      showDayArchive (CurrentDayArchive);
+}
+
+function previousMonth () {
+   var month = CurrentDate.getMonth();
+   if (month == 0) {
+      CurrentDate.setYear(CurrentDate.getYear()+1899); // previous year
+      CurrentDate.setMonth(11); // December.
+   } else {
+      CurrentDate.setMonth(CurrentDate.getMonth()-1);
+   }
+   clearDayArchive();
+   updateCalendar();
+}
+
+function nextMonth () {
+   var month = CurrentDate.getMonth();
+   if (month == 11) {
+      CurrentDate.setYear(CurrentDate.getYear()+1901);
+      CurrentDate.setMonth(0); // January.
+   } else {
+      CurrentDate.setMonth(CurrentDate.getMonth()+1);
+   }
+   clearDayArchive();
+   updateCalendar();
+}
+
+function drawCalendar (data) {
+
+   var title = window.location.hostname+' - Log Archive';
+   document.getElementsByTagName ('title')[0].innerHTML = title;
+
+   var table = document.getElementsByClassName ('monthly')[0];
+
+   // Remove all current content.
+   while (table.childNodes.length > 1) {
+      table.removeChild(table.childNodes[1]);
+   }
+
+   // Build the title bar.
+   var year = CurrentDate.getYear() + 1900;
+   var line = document.createElement("tr");
+   line.className = 'calendarTopTitle';
+   var column = document.createElement("th");
+   var button = document.createElement("button");
+   button.innerHTML = '<';
+   button.className = 'calendarTitleLeftButton';
+   button.onclick = previousMonth;
+   column.appendChild(button);
+   line.appendChild(column);
+   column = document.createElement("th");
+   column.innerHTML = monthName[CurrentDate.getMonth()] + ' ' + year;
+   column.className = 'calendarTitleMonth';
+   column.colSpan = 5;
+   line.appendChild(column);
+   column = document.createElement("th");
+   button = document.createElement("button");
+   button.innerHTML = '>';
+   button.className = 'calendarTitleRightButton';
+   button.onclick = nextMonth;
+   column.appendChild(button);
+   line.appendChild(column);
+   table.appendChild(line);
+
+   line = document.createElement("tr");
+   line.className = 'calendarBottomTitle';
+   for (var i = 0; i < 7; i++) {
+      column = document.createElement("th");
+      column.innerHTML = dayName[i];
+      column.className = 'calendarDayTitle';
+      line.appendChild(column);
+   }
+   table.appendChild(line);
+
+   var calendar = new Date(CurrentDate);
+   calendar.setDate(1);
+
+   line = document.createElement("tr");
+
+   // Add empty columns until the first day of the month.
+   var hasDay = false;
+   for (var i = 0; i < calendar.getDay(); i++) {
+      column = document.createElement("td");
+      column.innerHTML = ' ';
+      line.appendChild(column);
+      hasDay = true;
+   }
+
+   // Go through each day of this month (31 or less).
+   for (var i = 1; i <= 31; i++) {
+      var dayOfMonth = calendar.getDate();
+      if (dayOfMonth < i) break;
+      if (dayOfMonth >= i)
+      {
+          // Start a new line for each new week.
+          weekDay = calendar.getDay();
+          if (weekDay == 0) {
+             table.appendChild(line);
+             line = document.createElement("tr");
+             hasDay = false;
+          }
+          if (weekDay < 7) {
+             column = document.createElement("td");
+             if (data[i]) {
+               button = document.createElement("button");
+               button.innerHTML = ''+i;
+               button.onclick = loadDayArchive;
+               button.day = ''+i;
+               column.appendChild(button);
+             } else {
+               column.innerHTML = ''+i;
+             }
+             line.appendChild(column);
+             hasDay = true;
+          }
+      }
+      calendar.setDate(dayOfMonth+1);
+   }
+   if (hasDay) 
+      table.appendChild(line);
+}
+
+function updateCalendar () {
+
+   var year = CurrentDate.getYear() + 1900;
+   var month = CurrentDate.getMonth() + 1;
+   var command = new XMLHttpRequest();
+   command.open("GET", "/saga/monthly?year=" + year + "&month=" + month);
+   command.onreadystatechange = function () {
+      if (command.readyState === 4 && command.status === 200) {
+         drawCalendar((JSON.parse(command.responseText)));
+      }
+   }
+   command.send(null);
+}
+
+function populate () {
+   updateCalendar();
+}
+
+window.onload = populate;
+window.onresize = resizeDayArchive;
+</script>
+</head>
+<body>
+   <table class="housetopcontainer">
+   <tr><td>
+   <table class="housetop">
+   <tr>
+   <td><a href="/saga/index.html">Events</a></td>
+   <td><a href="/saga/sensors.html">Sensors</a></td>
+   <td><a href="/saga/archives.html">Archives</a></td>
+   <td><span>Graphs</span></td>
+   </tr>
+   </table>
+   </td></tr>
+   </table>
+   <center>
+      <table>
+         <tr>
+            <td>
+               <table class="monthlyBorder">
+               <tr><td>
+               <table class="monthly">
+               </table>
+               </td></tr>
+               </table>
+            </td>
+            <td width="20%">
+            </td>
+            <td>
+               <table class="hostselector">
+               </table>
+            </td>
+         </tr>
+      </table>
+   </center>
+   <br>
+   <br>
+   <p>
+   <center>
+   <table>
+      <tr>
+       <table class="housewidetable" border="0">
+          <tr><td>
+          <table class="housewidetable" border="0">
+          <tr><th>CPU</th></tr>
+          <tr><td>
+             <svg class="chartcpu" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>MEMORY</th></tr>
+          <tr><td>
+             <svg class="chartram" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>DISK IO</th></tr>
+          <tr><td>
+             <svg class="chartdisk" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>NETWORK IO</th></tr>
+          <tr><td>
+             <svg class="chartnet" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          </td></tr>
+       </table>
+      </tr>
+   </table>
+   </center>
+</body>
+</html>
+
