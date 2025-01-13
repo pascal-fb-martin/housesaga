@@ -80,6 +80,23 @@ function showDayHosts () {
    if (line) table.appendChild(line);
 }
 
+function showScale (chart, text, color, x, anchor) {
+
+    if (!color) color = '#000000'; // Black for normal people.
+    if (!x) x = 25;
+
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    line.setAttribute('class', 'graph');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('x', x);
+    line.setAttribute('y', '20');
+    if (anchor) line.setAttribute('text-anchor', anchor);
+    line.innerHTML = text;
+    chart.appendChild(line);
+}
+
 function showLine (chart, x1, y1, x2, y2, width, color) {
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -109,6 +126,15 @@ function toY (v) {
     return 2 * (110 - v);
 }
 
+function roundBase10 (x) {
+    if (x > 100) {
+        return Math.ceil (x / 100) * 100;
+    } else if (x > 10) {
+        return Math.ceil (x / 10) * 10;
+    }
+    return 10;
+}
+
 function inversePercentage (data) {
     var i = data.length - 1;
     while (--i >= 0) {
@@ -131,6 +157,60 @@ function toPercentage (reference, data) {
         }
     }
     return result;
+}
+
+function sumMetrics (a, b) {
+    if (a && b) {
+        if (a.length != b.length) throw new Error ("Cannot sum different metrics");
+        var i = a.length - 1;
+        var result = a.slice(0);
+        while (--i >= 0) result[i] += b[i];
+        return result;
+    } else if (a) {
+        return a;
+    }
+    return b; // Even if null or undefined, since the input is such.
+}
+
+function mergeMetrics (a, b) {
+    if (a && b) {
+        if (a.length != b.length) throw new Error ("Cannot merge different metrics");
+        var i = a.length - 1;
+        var result = a.slice(0);
+        switch (a.length) {
+            case 4:
+                if (result[0] > b[0]) result[0] = b[0];
+                result[1] = (a[1] + b[1]) / 2; // Don't know any better.
+                if (result[2] < b[2]) result[2] = b[2];
+                break;
+            case 3:
+                if (result[0] > b[0]) result[0] = b[0];
+                if (result[1] < b[1]) result[1] = b[1];
+                break;
+            case 2:
+                if (a[0] < b[0]) {
+                    result = [a[0], b[0], a[1]];
+                } else if (a[0] > b[0]) {
+                    result = [b[0], a[0], a[1]];
+                }
+                break;
+        }
+        return result;
+    } else if (a) {
+        return a;
+    }
+    return b;
+}
+
+function maxMetrics (a) {
+    var max = 0;
+    if (a && a.length > 0) {
+        var i = a.length - 1;
+        while (--i >= 0) {
+            if (max < a[i]) max = a[i];
+        }
+    }
+    return max;
 }
 
 function showPercentiles (chart, start, step, i, data) {
@@ -163,6 +243,7 @@ function showDayArchiveCPU (data) {
         if (point) median += point;
     }
     if (median.length > 0) showPolyLine (chart, median, '#000000');
+    showScale (chart, '%');
 }
 
 function showDayArchiveRAM (data) {
@@ -177,9 +258,41 @@ function showDayArchiveRAM (data) {
         if (point) median += point;
     }
     if (median.length > 0) showPolyLine (chart, median, '#000000');
+    showScale (chart, '%');
 }
 
 function showDayArchiveDisk (data) {
+    var median1 = '';
+    var median2 = '';
+    var chart1 = document.getElementsByClassName ('chartdisk')[0];
+    var chart2 = document.getElementsByClassName ('chartwait')[0];
+    var step = 1152 / data.length;
+    var start = 20 + (step / 2);
+    for (var j = 0; j < data.length; ++j) {
+        var volumes = Object.keys(data[j]);
+        var rate = null;
+        var wait = null;
+        for (var i = 0; i < volumes.length; ++i) {
+            var disk = data[j][volumes[i]];
+            rate = sumMetrics (sumMetrics (disk.rdrate, disk.wrrate), rate);
+            wait = mergeMetrics (mergeMetrics (disk.rdwait, disk.wrwait), wait);
+        }
+        if (!rate) rate = [0, 'KB/s'];
+        var maxrate = roundBase10 (maxMetrics(rate));
+        rate = toPercentage(maxrate, rate);
+        var point = showPercentiles (chart1, start, step, j, rate);
+        if (point) median1 += point;
+
+        if (!wait) wait = [0, 'ms'];
+        var maxwait = roundBase10 (maxMetrics(wait));
+        wait = toPercentage(maxwait, wait);
+        point = showPercentiles (chart2, start, step, j, wait);
+        if (point) median2 += point;
+    }
+    if (median1.length > 0) showPolyLine (chart1, median1, '#000000');
+    if (median2.length > 0) showPolyLine (chart2, median2, '#000000');
+    showScale (chart1, ''+maxrate+' KB/s');
+    showScale (chart2, ''+maxwait+' ms', '#000000', 25);
 }
 
 function showDayArchiveNet (data) {
@@ -498,6 +611,30 @@ window.onresize = resizeDayArchive;
           <tr><th>DISK IO</th></tr>
           <tr><td>
              <svg class="chartdisk" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>DISK WAIT</th></tr>
+          <tr><td>
+             <svg class="chartwait" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
