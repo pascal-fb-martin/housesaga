@@ -268,7 +268,26 @@ function showDayArchiveDisk (data) {
     var chart2 = document.getElementsByClassName ('chartwait')[0];
     var step = 1152 / data.length;
     var start = 20 + (step / 2);
+    var scale1 = 0;
+    var scale2 = 0;
+
+    // Need two passes: the fist is to retrieve the scales to be used, 
+    // the second is to draw the graphs.
+    //
     for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var volumes = Object.keys(data[j]);
+        var maxr = 0;
+        for (var i = 0; i < volumes.length; ++i) {
+            var disk = data[j][volumes[i]];
+            maxr += maxMetrics (sumMetrics (disk.rdrate, disk.wrrate));
+            var maxw = maxMetrics (mergeMetrics (disk.rdwait, disk.wrwait));
+            if (scale2 < maxw) scale2 = maxw;
+        }
+        if (scale1 < maxr) scale1 = maxr;
+    }
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
         var volumes = Object.keys(data[j]);
         var rate = null;
         var wait = null;
@@ -278,24 +297,71 @@ function showDayArchiveDisk (data) {
             wait = mergeMetrics (mergeMetrics (disk.rdwait, disk.wrwait), wait);
         }
         if (!rate) rate = [0, 'KB/s'];
-        var maxrate = roundBase10 (maxMetrics(rate));
-        rate = toPercentage(maxrate, rate);
+        rate = toPercentage(scale1, rate);
         var point = showPercentiles (chart1, start, step, j, rate);
         if (point) median1 += point;
 
         if (!wait) wait = [0, 'ms'];
-        var maxwait = roundBase10 (maxMetrics(wait));
-        wait = toPercentage(maxwait, wait);
+        wait = toPercentage(scale2, wait);
         point = showPercentiles (chart2, start, step, j, wait);
         if (point) median2 += point;
     }
     if (median1.length > 0) showPolyLine (chart1, median1, '#000000');
     if (median2.length > 0) showPolyLine (chart2, median2, '#000000');
-    showScale (chart1, ''+maxrate+' KB/s');
-    showScale (chart2, ''+maxwait+' ms', '#000000', 25);
+    showScale (chart1, ''+scale1+' IO/s');
+    showScale (chart2, ''+scale2+' ms', '#000000', 25);
 }
 
 function showDayArchiveNet (data) {
+    var median1 = '';
+    var median2 = '';
+    var chart1 = document.getElementsByClassName ('chartnettx')[0];
+    var chart2 = document.getElementsByClassName ('chartnetrx')[0];
+    var step = 1152 / data.length;
+    var start = 20 + (step / 2);
+    var scale1 = 0;
+    var scale2 = 0;
+
+    // Need two passes: the fist is to retrieve the scales to be used, 
+    // the second is to draw the graphs.
+    //
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var nics = Object.keys(data[j]);
+        var max1 = 0;
+        var max2 = 0;
+        for (var i = 0; i < nics.length; ++i) {
+            var nic = data[j][nics[i]];
+            max1 += maxMetrics (nic.txrate);
+            max2 += maxMetrics (nic.rxrate);
+        }
+        if (scale1 < max1) scale1 = max1;
+        if (scale2 < max2) scale2 = max2;
+    }
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var nics = Object.keys(data[j]);
+        var txrate = null;
+        var rxrate = null;
+        for (var i = 0; i < nics.length; ++i) {
+            var nic = data[j][nics[i]];
+            txrate = sumMetrics (nic.txrate, txrate);
+            rxrate = sumMetrics (nic.rxrate, rxrate);
+        }
+        if (!txrate) txrate = [0, 'KB/s'];
+        var rate = toPercentage(scale1, txrate);
+        var point = showPercentiles (chart1, start, step, j, rate);
+        if (point) median1 += point;
+
+        if (!rxrate) rxrate = [0, 'KB/s'];
+        rate = toPercentage(scale2, rxrate);
+        point = showPercentiles (chart2, start, step, j, rate);
+        if (point) median2 += point;
+    }
+    if (median1.length > 0) showPolyLine (chart1, median1, '#000000');
+    if (median2.length > 0) showPolyLine (chart2, median2, '#000000');
+    showScale (chart1, ''+scale1+' KB/s');
+    showScale (chart2, ''+scale2+' KB/s');
 }
 
 function showDayArchive () {
@@ -656,9 +722,35 @@ window.onresize = resizeDayArchive;
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
-          <tr><th>NETWORK IO</th></tr>
+          <tr><th>NETWORK IO: TRANSMIT</th></tr>
           <tr><td>
-             <svg class="chartnet" viewBox="0 0 616 240" width="100%" height="200">
+             <svg class="chartnettx" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          </td></tr>
+       </table>
+          <table class="housewidetable" border="0">
+          <tr><th>NETWORK IO: RECEIVE</th></tr>
+          <tr><td>
+             <svg class="chartnetrx" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
