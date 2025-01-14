@@ -180,7 +180,7 @@ function mergeMetrics (a, b) {
         switch (a.length) {
             case 4:
                 if (result[0] > b[0]) result[0] = b[0];
-                result[1] = (a[1] + b[1]) / 2; // Don't know any better.
+                if (result[1] < b[1]) result[1] = b[1]; // Worst case.
                 if (result[2] < b[2]) result[2] = b[2];
                 break;
             case 3:
