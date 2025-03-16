@@ -83,7 +83,7 @@ static void housesaga_trace_new (const struct timeval *timestamp,
                                  const char *text) {
 
     static char TraceHeader[] =
-        "TIMESTAMP,HOST,APP,LEVEL,FILE,LINE,OBJECT,DESCRIPTION";
+        "TIMESTAMP,HOST,APP,FILE,LINE,LEVEL,OBJECT,DESCRIPTION";
 
     char buffer[1024];
 
