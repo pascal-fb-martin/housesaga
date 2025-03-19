@@ -107,6 +107,7 @@ static char LocalHost[256] = {0};
 
 struct EventRecord {
     struct timeval timestamp;
+    unsigned long id;
     int    unsaved;
     char   host[128];
     char   app[128];
@@ -120,7 +121,7 @@ struct EventRecord {
 
 static struct EventRecord EventHistory[HISTORY_DEPTH];
 static int EventCursor = 0;
-static long EventLatestId = 0;
+static unsigned long EventLatestId = 0;
 
 static echttp_sorted_list EventChronology;
 static time_t EventLastSaved = 0;
@@ -210,7 +211,16 @@ static void housesaga_event_new (const struct timeval *timestamp,
 
     if (!EventChronology) EventChronology = echttp_sorted_new();
 
+    if (EventLatestId == 0) {
+        // Seed the latest event ID based on the first event's time.
+        // This makes it random enough to make its value change after
+        // a restart.
+        EventLatestId = (unsigned long) (time(0) & 0xfffff);
+    }
+    EventLatestId += 1;
+
     cursor->timestamp = *timestamp;
+    cursor->id = EventLatestId;
     safecpy (cursor->host, host, sizeof(cursor->host));
     safecpy (cursor->app, app, sizeof(cursor->app));
     safecpy (cursor->category, category, sizeof(cursor->category));
@@ -241,14 +251,6 @@ static void housesaga_event_new (const struct timeval *timestamp,
                               (void *)((long)EventCursor));
         cursor->timestamp.tv_sec = 0;
     }
-
-    if (EventLatestId == 0) {
-        // Seed the latest event ID based on the first event's time.
-        // This makes it random enough to make its value change after
-        // a restart.
-        EventLatestId = (long) (time(0) & 0xffff);
-    }
-    EventLatestId += 1;
 }
 
 /* Local clone for the houselog.c API.
@@ -315,6 +317,8 @@ static int housesaga_event_getheader (char *buffer, int size, const char *from) 
 static char WebFormatBuffer[128+HISTORY_DEPTH*(sizeof(struct EventRecord)+24)] = {0};
 static int WebFormatLength = 0;
 static const char *WebFormatPrefix = "";
+static time_t WebFormatSinceSec = 0;
+static int WebFormatSinceUSec = 0;
 
 static int housesaga_webaction (void *data) {
 
@@ -324,8 +328,15 @@ static int housesaga_webaction (void *data) {
 
     if (!(cursor->timestamp.tv_sec)) return 1;
 
+    // Stop when the time limit, if any, was reached.
+    //
+    if (cursor->timestamp.tv_sec <= WebFormatSinceSec) {
+        if (cursor->timestamp.tv_sec < WebFormatSinceSec) return 0;
+        if (cursor->timestamp.tv_usec < WebFormatSinceUSec) return 0;
+    }
+
     int wrote = snprintf (WebFormatBuffer+WebFormatLength, size-WebFormatLength,
-                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]",
+                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%ld]",
                           WebFormatPrefix,
                           (long long)(cursor->timestamp.tv_sec),
                           (int)(cursor->timestamp.tv_usec/1000),
@@ -334,7 +345,8 @@ static int housesaga_webaction (void *data) {
                           cursor->action,
                           cursor->description,
                           cursor->host,
-                          cursor->app);
+                          cursor->app,
+                          cursor->id);
     WebFormatPrefix = ",";
 
     if (WebFormatLength + wrote >= size) {
@@ -355,6 +367,17 @@ static const char *housesaga_weblatest (const char *method, const char *uri,
 }
 
 static const char *housesaga_webget (void) {
+
+    const char *since = echttp_parameter_get("since");
+
+    if (since) {
+        long long sincevalue = atoll(since);
+        WebFormatSinceSec = (time_t)(sincevalue / 1000);
+        WebFormatSinceUSec = (int)((sincevalue % 1000) * 1000);
+    } else {
+        WebFormatSinceSec = 0;
+        WebFormatSinceUSec = 0;
+    }
 
     echttp_content_type_json ();
 
