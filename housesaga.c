@@ -49,29 +49,17 @@
 #include "housesaga_event.h"
 #include "housesaga_metrics.h"
 
-static int use_houseportal = 0;
-
 static void housesaga_background (int fd, int mode) {
 
     static time_t LastFlush = 0;
-    static time_t LastRenewal = 0;
     time_t now = time(0);
 
-    if (use_houseportal) {
-        static const char *path[] = {"history:/saga"};
-        if (now >= LastRenewal + 60) {
-            if (LastRenewal > 0)
-                houseportal_renew();
-            else
-                houseportal_register (echttp_port(4), path, 1);
-            LastRenewal = now;
-        }
-    }
-    if (now > LastFlush) {
-        housesaga_event_background (now);
-        housesaga_sensor_background (now);
-        LastFlush = now;
-    }
+    if (now <= LastFlush) return;
+    LastFlush = now;
+
+    houseportal_background (now);
+    housesaga_event_background (now);
+    housesaga_sensor_background (now);
 }
 
 static void housesaga_protect (const char *method, const char *uri) {
@@ -110,8 +98,9 @@ int main (int argc, const char **argv) {
 
     echttp_open (argc, argv);
     if (echttp_dynamic_port()) {
+        static const char *path[] = {"history:/saga"};
         houseportal_initialize (argc, argv);
-        use_houseportal = 1;
+        houseportal_declare (echttp_port(4), path, 1);
     }
     for (i = 1; i < argc; ++i) {
         if (echttp_option_match("-portal-server=", argv[i], &HousePortal)) continue;
