@@ -127,7 +127,11 @@ function toY (v) {
 }
 
 function roundBase10 (x) {
-    if (x > 100) {
+    if (x > 10000) {
+        return Math.ceil (x / 10000) * 10000;
+    } else if (x > 1000) {
+        return Math.ceil (x / 1000) * 1000;
+    } else if (x > 100) {
         return Math.ceil (x / 100) * 100;
     } else if (x > 10) {
         return Math.ceil (x / 10) * 10;
@@ -286,6 +290,8 @@ function showDayArchiveDisk (data) {
         }
         if (scale1 < maxr) scale1 = maxr;
     }
+    scale1 = roundBase10 (scale1);
+    scale2 = roundBase10 (scale2);
     for (var j = 0; j < data.length; ++j) {
         if (!data[j]) continue;
         var volumes = Object.keys(data[j]);
@@ -338,6 +344,8 @@ function showDayArchiveNet (data) {
         if (scale1 < max1) scale1 = max1;
         if (scale2 < max2) scale2 = max2;
     }
+    scale1 = roundBase10 (scale1);
+    scale2 = roundBase10 (scale2);
     for (var j = 0; j < data.length; ++j) {
         if (!data[j]) continue;
         var nics = Object.keys(data[j]);
@@ -364,6 +372,34 @@ function showDayArchiveNet (data) {
     showScale (chart2, ''+scale2+' KB/s');
 }
 
+function showDayArchiveTemp (data) {
+    var mediancpu = '';
+    var chartcpu = document.getElementsByClassName ('charttempcpu')[0];
+    var step = 1152 / data.length;
+    var start = 20 + (step / 2);
+    var scale = 0;
+
+    // Need two passes: the fist is to retrieve the scales to be used, 
+    // the second is to draw the graphs.
+    //
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var max = maxMetrics (data[j].cpu);;
+        if (scale < max) scale = max;
+    }
+    scale = roundBase10 (scale);
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var cpu = data[j].cpu;
+        if (! cpu) cpu = [0, 'mC'];
+        cputemp = toPercentage(scale, cpu);
+        var point = showPercentiles (chartcpu, start, step, j, cputemp);
+        if (point) mediancpu += point;
+    }
+    if (mediancpu.length > 0) showPolyLine (chartcpu, mediancpu, '#000000');
+    showScale (chartcpu, ''+scale/1000+' C');
+}
+
 function showDayArchive () {
 
    clearDayArchive();
@@ -375,6 +411,7 @@ function showDayArchive () {
    showDayArchiveRAM (CurrentDayArchive[SelectedHost].memory);
    showDayArchiveDisk (CurrentDayArchive[SelectedHost].disk);
    showDayArchiveNet (CurrentDayArchive[SelectedHost].net);
+   showDayArchiveTemp (CurrentDayArchive[SelectedHost].temp);
 }
 
 function decodeArchive (text) {
@@ -390,12 +427,14 @@ function decodeArchive (text) {
             result[data.host].storage = new Array();
             result[data.host].disk = new Array();
             result[data.host].net = new Array();
+            result[data.host].temp = new Array();
         }
         result[data.host].cpu.unshift(data.metrics.cpu);
         result[data.host].memory.unshift(data.metrics.memory);
         result[data.host].storage.unshift(data.metrics.storage);
         result[data.host].disk.unshift(data.metrics.disk);
         result[data.host].net.unshift(data.metrics.net);
+        result[data.host].temp.unshift(data.metrics.temp);
     }
     CurrentDayArchive = result;
     showDayHosts ();
@@ -749,6 +788,30 @@ window.onresize = resizeDayArchive;
           <tr><th>NETWORK IO: RECEIVE</th></tr>
           <tr><td>
              <svg class="chartnetrx" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>TEMPERATURE: CPU</th></tr>
+          <tr><td>
+             <svg class="charttempcpu" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
