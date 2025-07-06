@@ -140,6 +140,7 @@ function roundBase10 (x) {
 }
 
 function inversePercentage (data) {
+    if (!data) return null;
     var i = data.length - 1;
     while (--i >= 0) {
         data[i] = 100 - data[i];
@@ -148,7 +149,7 @@ function inversePercentage (data) {
 }
 
 function toPercentage (reference, data) {
-    if (!data) return new Array(); // Empty.
+    if (!data) return null;
     var result = data.slice(0);
     var i = result.length - 1;
     if (!reference) {
@@ -235,13 +236,14 @@ function showPercentiles (chart, start, step, i, data) {
 }
 
 function showDayArchiveCPU (data) {
+    if (!data) return;
     var median = '';
     var chart = document.getElementsByClassName ('chartcpu')[0];
-    var step = 1152 / data.length;
+    var step = 1152 / 288;
     var start = 20 + (step / 2);
     for (var i = 0; i < data.length; ++i) {
         var busy;
-        if ((!data[i]) || (!data[i].busy)) busy = [0,'%'];
+        if (!data[i]) busy = null;
         else busy = data[i].busy;
         var point = showPercentiles (chart, start, step, i, busy);
         if (point) median += point;
@@ -251,13 +253,16 @@ function showDayArchiveCPU (data) {
 }
 
 function showDayArchiveRAM (data) {
+    if (!data) return;
     var median = '';
     var chart = document.getElementsByClassName ('chartram')[0];
-    var step = 1152 / data.length;
+    var step = 1152 / 288;
     var start = 20 + (step / 2);
     for (var i = 0; i < data.length; ++i) {
-        if (!data[i].available) data[i].available = [0,'MB'];
-        var percent = inversePercentage (toPercentage(data[i].size[0], data[i].available));
+        var available;
+        if (!data[i]) available = null;
+        else available = data[i].available;
+        var percent = inversePercentage (toPercentage(data[i].size[0], available));
         var point = showPercentiles (chart, start, step, i, percent);
         if (point) median += point;
     }
@@ -270,7 +275,7 @@ function showDayArchiveDisk (data) {
     var median2 = '';
     var chart1 = document.getElementsByClassName ('chartdisk')[0];
     var chart2 = document.getElementsByClassName ('chartwait')[0];
-    var step = 1152 / data.length;
+    var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale1 = 0;
     var scale2 = 0;
@@ -292,8 +297,15 @@ function showDayArchiveDisk (data) {
     }
     scale1 = roundBase10 (scale1);
     scale2 = roundBase10 (scale2);
+    var point;
     for (var j = 0; j < data.length; ++j) {
-        if (!data[j]) continue;
+        if (!data[j]) {
+            point = showPercentiles (chart1, start, step, j, null);
+            if (point) median1 += point;
+            point = showPercentiles (chart2, start, step, j, null);
+            if (point) median2 += point;
+            continue;
+        }
         var volumes = Object.keys(data[j]);
         var rate = null;
         var wait = null;
@@ -302,13 +314,11 @@ function showDayArchiveDisk (data) {
             rate = sumMetrics (sumMetrics (disk.rdrate, disk.wrrate), rate);
             wait = mergeMetrics (mergeMetrics (disk.rdwait, disk.wrwait), wait);
         }
-        if (!rate) rate = [0, 'KB/s'];
-        rate = toPercentage(scale1, rate);
-        var point = showPercentiles (chart1, start, step, j, rate);
+        if (rate) rate = toPercentage(scale1, rate);
+        point = showPercentiles (chart1, start, step, j, rate);
         if (point) median1 += point;
 
-        if (!wait) wait = [0, 'ms'];
-        wait = toPercentage(scale2, wait);
+        if (wait) wait = toPercentage(scale2, wait);
         point = showPercentiles (chart2, start, step, j, wait);
         if (point) median2 += point;
     }
@@ -323,7 +333,7 @@ function showDayArchiveNet (data) {
     var median2 = '';
     var chart1 = document.getElementsByClassName ('chartnettx')[0];
     var chart2 = document.getElementsByClassName ('chartnetrx')[0];
-    var step = 1152 / data.length;
+    var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale1 = 0;
     var scale2 = 0;
@@ -346,8 +356,15 @@ function showDayArchiveNet (data) {
     }
     scale1 = roundBase10 (scale1);
     scale2 = roundBase10 (scale2);
+    var point;
     for (var j = 0; j < data.length; ++j) {
-        if (!data[j]) continue;
+        if (!data[j]) {
+            point = showPercentiles (chart1, start, step, j, null);
+            if (point) median1 += point;
+            point = showPercentiles (chart2, start, step, j, null);
+            if (point) median2 += point;
+            continue;
+        }
         var nics = Object.keys(data[j]);
         var txrate = null;
         var rxrate = null;
@@ -356,12 +373,10 @@ function showDayArchiveNet (data) {
             txrate = sumMetrics (nic.txrate, txrate);
             rxrate = sumMetrics (nic.rxrate, rxrate);
         }
-        if (!txrate) txrate = [0, 'KB/s'];
         var rate = toPercentage(scale1, txrate);
-        var point = showPercentiles (chart1, start, step, j, rate);
+        point = showPercentiles (chart1, start, step, j, rate);
         if (point) median1 += point;
 
-        if (!rxrate) rxrate = [0, 'KB/s'];
         rate = toPercentage(scale2, rxrate);
         point = showPercentiles (chart2, start, step, j, rate);
         if (point) median2 += point;
@@ -375,7 +390,7 @@ function showDayArchiveNet (data) {
 function showDayArchiveTemp (data) {
     var mediancpu = '';
     var chartcpu = document.getElementsByClassName ('charttempcpu')[0];
-    var step = 1152 / data.length;
+    var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale = 0;
 
@@ -384,20 +399,47 @@ function showDayArchiveTemp (data) {
     //
     for (var j = 0; j < data.length; ++j) {
         if (!data[j]) continue;
-        var max = maxMetrics (data[j].cpu);;
+        var max = maxMetrics (data[j].cpu);
         if (scale < max) scale = max;
     }
     scale = roundBase10 (scale);
+    var cpu;
     for (var j = 0; j < data.length; ++j) {
-        if (!data[j]) continue;
-        var cpu = data[j].cpu;
-        if (! cpu) cpu = [0, 'mC'];
-        cputemp = toPercentage(scale, cpu);
+        if (!data[j]) cpu = null;
+        else cpu = data[j].cpu;
+        var cputemp = toPercentage(scale, cpu);
         var point = showPercentiles (chartcpu, start, step, j, cputemp);
         if (point) mediancpu += point;
     }
     if (mediancpu.length > 0) showPolyLine (chartcpu, mediancpu, '#000000');
     showScale (chartcpu, ''+scale/1000+' C');
+}
+
+function showDayArchiveClock (data) {
+    if (!data) return;
+    var median = '';
+    var chart = document.getElementsByClassName ('chartclock')[0];
+    var step = 1152 / 288;
+    var start = 20 + (step / 2);
+    var scale = 0;
+
+    // Need two passes: the fist is to retrieve the scales to be used, 
+    // the second is to draw the graphs.
+    //
+    for (var j = 0; j < data.length; ++j) {
+        if (!data[j]) continue;
+        var max = maxMetrics (data[j].offset);
+        if (scale < max) scale = max;
+    }
+    for (var i = 0; i < data.length; ++i) {
+        var offset;
+        if (!data[i]) offset = null;
+        else offset = data[i].offset;
+        var point = showPercentiles (chart, start, step, i, offset);
+        if (point) median += point;
+    }
+    if (median.length > 0) showPolyLine (chart, median, '#000000');
+    showScale (chart, ''+scale+' ms');
 }
 
 function showDayArchive () {
@@ -412,14 +454,26 @@ function showDayArchive () {
    showDayArchiveDisk (CurrentDayArchive[SelectedHost].disk);
    showDayArchiveNet (CurrentDayArchive[SelectedHost].net);
    showDayArchiveTemp (CurrentDayArchive[SelectedHost].temp);
+   showDayArchiveClock (CurrentDayArchive[SelectedHost].clock);
 }
 
 function decodeArchive (text) {
     var lines = text.split(/\r?\n/);
     var result = new Object();
+    var startofday = null;
     for (var i = lines.length-1; i >= 0; --i) {
         if (!lines[i]) continue;
         var data = JSON.parse(lines[i]);
+        if (!data.host) continue;
+        if (!data.host.length) continue;
+        if (!data.timestamp) continue;
+        if (!startofday) {
+            startofday = new Date(data.timestamp * 1000);
+            startofday.setHours (0);
+            startofday.setMinutes (0);
+            startofday.setSeconds (0);
+            startofday = startofday.getTime() / 1000;
+        }
         if (!result[data.host]) {
             result[data.host] = new Object();
             result[data.host].cpu = new Array();
@@ -428,13 +482,24 @@ function decodeArchive (text) {
             result[data.host].disk = new Array();
             result[data.host].net = new Array();
             result[data.host].temp = new Array();
+            result[data.host].clock = new Array();
         }
-        result[data.host].cpu.unshift(data.metrics.cpu);
-        result[data.host].memory.unshift(data.metrics.memory);
-        result[data.host].storage.unshift(data.metrics.storage);
-        result[data.host].disk.unshift(data.metrics.disk);
-        result[data.host].net.unshift(data.metrics.net);
-        result[data.host].temp.unshift(data.metrics.temp);
+        if (data.timestamp < startofday) continue;
+        var x = (data.timestamp - startofday) / 300;
+        if (data.metrics.cpu)
+            result[data.host].cpu[x] = data.metrics.cpu;
+        if (data.metrics.memory)
+            result[data.host].memory[x] = data.metrics.memory;
+        if (data.metrics.storage)
+            result[data.host].storage[x] = data.metrics.storage;
+        if (data.metrics.disk)
+            result[data.host].disk[x] = data.metrics.disk;
+        if (data.metrics.net)
+            result[data.host].net[x] = data.metrics.net;
+        if (data.metrics.temp)
+            result[data.host].temp[x] = data.metrics.temp;
+        if (data.metrics.clock)
+            result[data.host].clock[x] = data.metrics.clock;
     }
     CurrentDayArchive = result;
     showDayHosts ();
@@ -812,6 +877,30 @@ window.onresize = resizeDayArchive;
           <tr><th>TEMPERATURE: CPU</th></tr>
           <tr><td>
              <svg class="charttempcpu" viewBox="0 0 616 240" width="100%" height="200">
+              <g>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220 
+                  20,20"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
+                  19,220
+                  1172,220"/> 
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,120 
+                  1172,120"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,70
+                  1172,70"/>
+               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
+                  20,170
+                  1172,170"/>
+            </g>
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>CLOCK: OFFSET</th></tr>
+          <tr><td>
+             <svg class="chartclock" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
