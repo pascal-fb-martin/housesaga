@@ -258,10 +258,15 @@ function showDayArchiveRAM (data) {
     var chart = document.getElementsByClassName ('chartram')[0];
     var step = 1152 / 288;
     var start = 20 + (step / 2);
+    var point;
     for (var i = 0; i < data.length; ++i) {
         var available;
-        if (!data[i]) available = null;
-        else available = data[i].available;
+        if (!data[i]) {
+            point = showPercentiles (chart, start, step, i, null);
+            if (point) median += point;
+            continue;
+        }
+        available = data[i].available;
         var percent = inversePercentage (toPercentage(data[i].size[0], available));
         var point = showPercentiles (chart, start, step, i, percent);
         if (point) median += point;
@@ -406,9 +411,8 @@ function showDayArchiveTemp (data) {
     var cpu;
     for (var j = 0; j < data.length; ++j) {
         if (!data[j]) cpu = null;
-        else cpu = data[j].cpu;
-        var cputemp = toPercentage(scale, cpu);
-        var point = showPercentiles (chartcpu, start, step, j, cputemp);
+        else cpu = toPercentage(scale, data[j].cpu);
+        var point = showPercentiles (chartcpu, start, step, j, cpu);
         if (point) mediancpu += point;
     }
     if (mediancpu.length > 0) showPolyLine (chartcpu, mediancpu, '#000000');
@@ -431,10 +435,11 @@ function showDayArchiveClock (data) {
         var max = maxMetrics (data[j].offset);
         if (scale < max) scale = max;
     }
+    scale = roundBase10 (scale);
+    var offset;
     for (var i = 0; i < data.length; ++i) {
-        var offset;
         if (!data[i]) offset = null;
-        else offset = data[i].offset;
+        else offset = toPercentage(scale, data[i].offset);
         var point = showPercentiles (chart, start, step, i, offset);
         if (point) median += point;
     }
