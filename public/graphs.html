@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Graphs</title>
+<title>Metrics</title>
 <link rel=stylesheet type="text/css" href="/house.css" title="House">
 <script language="javascript" type="text/javascript">
 
@@ -23,7 +23,7 @@ function clearDayHosts () {
 }
 
 function clearDayArchive () {
-   var elements = document.getElementsByClassName ('graph');
+   var elements = document.getElementsByClassName ('graphdata');
 
    // Remove all current content.
    for (var i = elements.length - 1; i >= 0; --i) {
@@ -86,7 +86,7 @@ function showScale (chart, text, color, x, anchor) {
     if (!x) x = 25;
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    line.setAttribute('class', 'graph');
+    line.setAttribute('class', 'graphdata');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', '1');
@@ -100,7 +100,7 @@ function showScale (chart, text, color, x, anchor) {
 function showLine (chart, x1, y1, x2, y2, width, color) {
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('class', 'graph');
+    line.setAttribute('class', 'graphdata');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', ''+width);
@@ -114,7 +114,7 @@ function showLine (chart, x1, y1, x2, y2, width, color) {
 function showPolyLine (chart, median, color) {
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    line.setAttribute('class', 'graph');
+    line.setAttribute('class', 'graphdata');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', '3');
@@ -238,7 +238,7 @@ function showPercentiles (chart, start, step, i, data) {
 function showDayArchiveCPU (data) {
     if (!data) return;
     var median = '';
-    var chart = document.getElementsByClassName ('chartcpu')[0];
+    var chart = document.getElementById ('chartcpu');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     for (var i = 0; i < data.length; ++i) {
@@ -255,7 +255,7 @@ function showDayArchiveCPU (data) {
 function showDayArchiveRAM (data) {
     if (!data) return;
     var median = '';
-    var chart = document.getElementsByClassName ('chartram')[0];
+    var chart = document.getElementById ('chartram');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var point;
@@ -278,8 +278,8 @@ function showDayArchiveRAM (data) {
 function showDayArchiveDisk (data) {
     var median1 = '';
     var median2 = '';
-    var chart1 = document.getElementsByClassName ('chartdisk')[0];
-    var chart2 = document.getElementsByClassName ('chartwait')[0];
+    var chart1 = document.getElementById ('chartdisk');
+    var chart2 = document.getElementById ('chartwait');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale1 = 0;
@@ -336,8 +336,8 @@ function showDayArchiveDisk (data) {
 function showDayArchiveNet (data) {
     var median1 = '';
     var median2 = '';
-    var chart1 = document.getElementsByClassName ('chartnettx')[0];
-    var chart2 = document.getElementsByClassName ('chartnetrx')[0];
+    var chart1 = document.getElementById ('chartnettx');
+    var chart2 = document.getElementById ('chartnetrx');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale1 = 0;
@@ -394,7 +394,7 @@ function showDayArchiveNet (data) {
 
 function showDayArchiveTemp (data) {
     var mediancpu = '';
-    var chartcpu = document.getElementsByClassName ('charttempcpu')[0];
+    var chartcpu = document.getElementById ('charttempcpu');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale = 0;
@@ -422,7 +422,7 @@ function showDayArchiveTemp (data) {
 function showDayArchiveClock (data) {
     if (!data) return;
     var median = '';
-    var chart = document.getElementsByClassName ('chartclock')[0];
+    var chart = document.getElementById ('chartclock');
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var scale = 0;
@@ -578,7 +578,7 @@ function nextMonth () {
 
 function drawCalendar (data) {
 
-   var title = window.location.hostname+' - Log Archive';
+   var title = window.location.hostname+' - Metrics';
    document.getElementsByTagName ('title')[0].innerHTML = title;
 
    var table = document.getElementsByClassName ('monthly')[0];
@@ -685,8 +685,41 @@ function updateCalendar () {
    command.send(null);
 }
 
+function showOneRuleMark (chart, x1, y1, x2, y2, width) {
+
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', '#0074d9');
+    line.setAttribute('stroke-width', ''+width);
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    chart.appendChild(line);
+}
+
+function showOneRuler (chart) {
+    var x = 19;
+    showOneRuleMark (chart, x, 220, x, 235, 2);
+    for (var h = 1; h <= 24; ++h) {
+        x += 24;
+        showOneRuleMark (chart, x, 220, x, 225, 1);
+        x += 24;
+        if (h % 6)
+            showOneRuleMark (chart, x, 220, x, 230, 1);
+        else
+            showOneRuleMark (chart, x, 220, x, 235, 2);
+    }
+}
+
+function showRulers () {
+    var charts = document.getElementsByClassName ('chartmetrics');
+    for (var i = 0; i < charts.length; ++i) showOneRuler (charts[i]);
+}
+
 function populate () {
    updateCalendar();
+   showRulers ();
 }
 
 window.onload = populate;
@@ -737,11 +770,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>CPU</th></tr>
           <tr><td>
-             <svg class="chartcpu" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -761,11 +794,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>MEMORY</th></tr>
           <tr><td>
-             <svg class="chartram" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartram" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -785,11 +818,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>DISK IO</th></tr>
           <tr><td>
-             <svg class="chartdisk" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartdisk" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -809,11 +842,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>DISK WAIT</th></tr>
           <tr><td>
-             <svg class="chartwait" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartwait" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -833,11 +866,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>NETWORK IO: TRANSMIT</th></tr>
           <tr><td>
-             <svg class="chartnettx" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartnettx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -857,11 +890,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>NETWORK IO: RECEIVE</th></tr>
           <tr><td>
-             <svg class="chartnetrx" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartnetrx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -881,11 +914,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>TEMPERATURE: CPU</th></tr>
           <tr><td>
-             <svg class="charttempcpu" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="charttempcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
@@ -905,11 +938,11 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>CLOCK: OFFSET</th></tr>
           <tr><td>
-             <svg class="chartclock" viewBox="0 0 616 240" width="100%" height="200">
+             <svg id="chartclock" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
               <g>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220 
-                  20,20"/>
+                  19,20"/>
                <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
                   19,220
                   1172,220"/> 
