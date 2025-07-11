@@ -97,10 +97,10 @@ function showScale (chart, text, color, x, anchor) {
     chart.appendChild(line);
 }
 
-function showLine (chart, x1, y1, x2, y2, width, color) {
+function showLine (chart, x1, y1, x2, y2, width, color, permanent) {
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('class', 'graphdata');
+    if (! permanent) line.setAttribute('class', 'graphdata');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', ''+width);
@@ -111,14 +111,14 @@ function showLine (chart, x1, y1, x2, y2, width, color) {
     chart.appendChild(line);
 }
 
-function showPolyLine (chart, median, color) {
+function showPolyLine (chart, points, color) {
 
     var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     line.setAttribute('class', 'graphdata');
     line.setAttribute('fill', 'none');
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', '3');
-    line.setAttribute('points', median);
+    line.setAttribute('points', points);
     chart.appendChild(line);
 }
 
@@ -260,14 +260,11 @@ function showDayArchiveRAM (data) {
     var start = 20 + (step / 2);
     var point;
     for (var i = 0; i < data.length; ++i) {
-        var available;
-        if (!data[i]) {
-            point = showPercentiles (chart, start, step, i, null);
-            if (point) median += point;
-            continue;
+        var percent = null;
+        if (data[i]) {
+            var available = data[i].available;
+            percent = inversePercentage (toPercentage(data[i].size[0], available));
         }
-        available = data[i].available;
-        var percent = inversePercentage (toPercentage(data[i].size[0], available));
         var point = showPercentiles (chart, start, step, i, percent);
         if (point) median += point;
     }
@@ -304,26 +301,20 @@ function showDayArchiveDisk (data) {
     scale2 = roundBase10 (scale2);
     var point;
     for (var j = 0; j < data.length; ++j) {
-        if (!data[j]) {
-            point = showPercentiles (chart1, start, step, j, null);
-            if (point) median1 += point;
-            point = showPercentiles (chart2, start, step, j, null);
-            if (point) median2 += point;
-            continue;
-        }
-        var volumes = Object.keys(data[j]);
         var rate = null;
         var wait = null;
-        for (var i = 0; i < volumes.length; ++i) {
-            var disk = data[j][volumes[i]];
-            rate = sumMetrics (sumMetrics (disk.rdrate, disk.wrrate), rate);
-            wait = mergeMetrics (mergeMetrics (disk.rdwait, disk.wrwait), wait);
+        if (data[j]) {
+            var volumes = Object.keys(data[j]);
+            for (var i = 0; i < volumes.length; ++i) {
+                var disk = data[j][volumes[i]];
+                rate = sumMetrics (sumMetrics (disk.rdrate, disk.wrrate), rate);
+                wait = mergeMetrics (mergeMetrics (disk.rdwait, disk.wrwait), wait);
+            }
+            if (rate) rate = toPercentage(scale1, rate);
+            if (wait) wait = toPercentage(scale2, wait);
         }
-        if (rate) rate = toPercentage(scale1, rate);
         point = showPercentiles (chart1, start, step, j, rate);
         if (point) median1 += point;
-
-        if (wait) wait = toPercentage(scale2, wait);
         point = showPercentiles (chart2, start, step, j, wait);
         if (point) median2 += point;
     }
@@ -363,27 +354,21 @@ function showDayArchiveNet (data) {
     scale2 = roundBase10 (scale2);
     var point;
     for (var j = 0; j < data.length; ++j) {
-        if (!data[j]) {
-            point = showPercentiles (chart1, start, step, j, null);
-            if (point) median1 += point;
-            point = showPercentiles (chart2, start, step, j, null);
-            if (point) median2 += point;
-            continue;
-        }
-        var nics = Object.keys(data[j]);
         var txrate = null;
         var rxrate = null;
-        for (var i = 0; i < nics.length; ++i) {
-            var nic = data[j][nics[i]];
-            txrate = sumMetrics (nic.txrate, txrate);
-            rxrate = sumMetrics (nic.rxrate, rxrate);
+        if (data[j]) {
+            var nics = Object.keys(data[j]);
+            for (var i = 0; i < nics.length; ++i) {
+                var nic = data[j][nics[i]];
+                txrate = sumMetrics (nic.txrate, txrate);
+                rxrate = sumMetrics (nic.rxrate, rxrate);
+            }
+            if (txrate) txrate = toPercentage(scale1, txrate);
+            if (rxrate) rxrate = toPercentage(scale2, rxrate);
         }
-        var rate = toPercentage(scale1, txrate);
-        point = showPercentiles (chart1, start, step, j, rate);
+        point = showPercentiles (chart1, start, step, j, txrate);
         if (point) median1 += point;
-
-        rate = toPercentage(scale2, rxrate);
-        point = showPercentiles (chart2, start, step, j, rate);
+        point = showPercentiles (chart2, start, step, j, rxrate);
         if (point) median2 += point;
     }
     if (median1.length > 0) showPolyLine (chart1, median1, '#000000');
@@ -685,36 +670,34 @@ function updateCalendar () {
    command.send(null);
 }
 
-function showOneRuleMark (chart, x1, y1, x2, y2, width) {
-
-    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', '#0074d9');
-    line.setAttribute('stroke-width', ''+width);
-    line.setAttribute('x1', x1);
-    line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2);
-    line.setAttribute('y2', y2);
-    chart.appendChild(line);
-}
-
-function showOneRuler (chart) {
+function showRulerMarks (chart, color) {
     var x = 19;
-    showOneRuleMark (chart, x, 220, x, 235, 2);
+    showLine (chart, x, 220, x, 235, 2, color, true);
     for (var h = 1; h <= 24; ++h) {
         x += 24;
-        showOneRuleMark (chart, x, 220, x, 225, 1);
+        showLine (chart, x, 220, x, 225, 1, color, true);
         x += 24;
         if (h % 6)
-            showOneRuleMark (chart, x, 220, x, 230, 1);
+            showLine (chart, x, 220, x, 230, 1, color, true);
         else
-            showOneRuleMark (chart, x, 220, x, 235, 2);
+            showLine (chart, x, 220, x, 235, 2, color, true);
     }
 }
 
 function showRulers () {
+    var color = '#0074d9';
     var charts = document.getElementsByClassName ('chartmetrics');
-    for (var i = 0; i < charts.length; ++i) showOneRuler (charts[i]);
+    for (var i = 0; i < charts.length; ++i) {
+        var chart = charts[i];
+        var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        showLine (group, 19, 220, 19, 20, 2, color, true);
+        showLine (group, 19, 220, 1172, 220, 2, color, true);
+        showLine (group, 20, 170, 1172, 170, 1, color, true);
+        showLine (group, 20, 120, 1172, 120, 1, color, true);
+        showLine (group, 20, 70, 1172, 70, 1, color, true);
+        showRulerMarks (group, color);
+        chart.appendChild(group);
+    }
 }
 
 function populate () {
@@ -770,192 +753,56 @@ window.onresize = resizeDayArchive;
           <table class="housewidetable" border="0">
           <tr><th>CPU</th></tr>
           <tr><td>
-             <svg id="chartcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>MEMORY</th></tr>
           <tr><td>
-             <svg id="chartram" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartram" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>DISK IO</th></tr>
           <tr><td>
-             <svg id="chartdisk" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartdisk" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>DISK WAIT</th></tr>
           <tr><td>
-             <svg id="chartwait" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartwait" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>NETWORK IO: TRANSMIT</th></tr>
           <tr><td>
-             <svg id="chartnettx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartnettx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>NETWORK IO: RECEIVE</th></tr>
           <tr><td>
-             <svg id="chartnetrx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartnetrx" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>TEMPERATURE: CPU</th></tr>
           <tr><td>
-             <svg id="charttempcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="charttempcpu" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
           <table class="housewidetable" border="0">
           <tr><th>CLOCK: OFFSET</th></tr>
           <tr><td>
-             <svg id="chartclock" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
-              <g>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220 
-                  19,20"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="2" points="
-                  19,220
-                  1172,220"/> 
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,120 
-                  1172,120"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,70
-                  1172,70"/>
-               <polyline fill="none" stroke="#0074d9" stroke-width="1" stroke-dasharray="5,2" points="
-                  20,170
-                  1172,170"/>
-            </g>
+           <svg id="chartclock" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
