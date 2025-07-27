@@ -34,6 +34,7 @@ HouseSaga comes with a command line tool named `houseevents` that makes it easie
    houseevents [-e|-s|-t] [year [month [day]]]
 ```
 The options are:
+
 * -e: show events. (Default)
 * -s: show sensor data.
 * -t: show traces.
@@ -43,6 +44,7 @@ If no year is provided, the default is the current day. If only the year is prov
 Warning: this tool requires Tcl. It cannot process metrics logs.
 
 By convention there are several types of logs commonly used with HouseSaga:
+
 * Event logs.
 * Trace logs.
 * Sensor measurement logs.
@@ -53,12 +55,14 @@ Note that this service consolidates records from all sources into a single daily
 All log files are organized in daily sets, i.e. a file is created each day in a _year_/_month_/_day_ subdirectory. The default root of that tree is /var/lib/house/log.
 
 The event, trace and sensor logs share a few common properties:
+
 * Use the CSV format (text/csv). The first line contains the names of columns.
 * One field is named "TIMESTAMP" and contains a UNIX system time in the format ssssss[.mmm].
 
 The value of UNIT may be empty.
 
 An event log records an history of status and actions that are related to the purpose of the service. Interpreting an event should not require any knowledge of the application's source code, only an understanding of the purpose and user configuration of the service. The event log is relevant to the user of the service. An event csv record contains at least the following fields:
+
 - TIMESTAMP,
 - HOST,
 - APP,
@@ -68,6 +72,7 @@ An event log records an history of status and actions that are related to the pu
 - DESCRIPTION.
 
 A trace log records an history of status and actions that describe how, and how well, the service is fulfilling its purpose. The trace log is relevant to the developer of the application, or to the system administrator of the service. A trace csv record contains at least the following fields:
+
 - TIMESTAMP,
 - HOST,
 - APP,
@@ -78,6 +83,7 @@ A trace log records an history of status and actions that describe how, and how 
 - DESCRIPTION.
 
 A sensor log is a set of records where each record contains an identifier, a value and a unit fields (optional). These are used to collect some real-world external measurements. A data collection csv record contains at least the following field:
+
 - TIMESTAMP,
 - LOCATION,
 - NAME,
