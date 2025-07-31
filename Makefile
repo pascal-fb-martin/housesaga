@@ -54,7 +54,7 @@ housesaga: $(OBJS)
 
 # Application installation. -------------------------------------
 
-install-ui:
+install-ui: install-preamble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(SHARE)/public/saga
 	$(INSTALL) -m 0644 public/* $(DESTDIR)$(SHARE)/public/saga
 
