@@ -16,10 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor,
 # Boston, MA  02110-1301, USA.
+#
+# WARNING
+#
+# This Makefile depends on echttp and houseportal (dev) being installed.
+
+prefix=/usr/local
+SHARE=$(prefix)/share/house
+
+INSTALL=/usr/bin/install
 
 HAPP=housesaga
-HROOT=/usr/local
-SHARE=$(HROOT)/share/house
 STORE=/var/lib/house/log
 
 # Application build. --------------------------------------------
@@ -43,37 +50,28 @@ rebuild: clean all
 	gcc -c -g -Os -o $@ $<
 
 housesaga: $(OBJS)
-	gcc -g -O -o housesaga $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lrt
+	gcc -g -O -o housesaga $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lmagic -lrt
 
 # Application installation. -------------------------------------
 
 install-ui:
-	mkdir -p $(SHARE)/public/saga
-	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/saga
-	cp public/* $(SHARE)/public/saga
-	chown root:root $(SHARE)/public/saga/*
-	chmod 644 $(SHARE)/public/saga/*
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(SHARE)/public/saga
+	$(INSTALL) -m 0644 public/* $(DESTDIR)$(SHARE)/public/saga
 
 install-app: install-ui
-	mkdir -p $(STORE)
-	chown -R house $(STORE)
-	mkdir -p $(HROOT)/bin
-	mkdir -p /etc/house
-	rm -f $(HROOT)/bin/housesaga $(HROOT)/bin/events $(HROOT)/bin/houseevents
-	cp housesaga $(HROOT)/bin
-	cp events.tcl $(HROOT)/bin/houseevents
-	chown root:root $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
-	chmod 755 $(HROOT)/bin/housesaga $(HROOT)/bin/houseevents
-	touch /etc/default/housesaga
+	if [ "x$(DESTDIR)" = "x" ] ; then $(INSTALL) -m 0755 -d $(STORE) ; chown -R house $(STORE) ; fi
+	$(INSTALL) -m 0755 housesaga $(DESTDIR)$(prefix)/bin
+	$(INSTALL) -m 0755 -T events.tcl $(DESTDIR)$(prefix)/bin/houseevents
+	touch $(DESTDIR)/etc/default/housesaga
 
 uninstall-app:
-	rm -rf $(SHARE)/public/saga
-	rm -f $(HROOT)/bin/housesaga
+	rm -rf $(DESTDIR)$(SHARE)/public/saga
+	rm -f $(DESTDIR)$(prefix)/bin/housesaga
 
 purge-app:
 
 purge-config:
-	rm -rf /etc/default/housesaga
+	rm -rf $(DESTDIR)/etc/default/housesaga
 
 # System installation. ------------------------------------------
 
