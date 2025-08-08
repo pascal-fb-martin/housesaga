@@ -1,0 +1,20 @@
+Source: housesaga
+Version: 1.0
+Section: Web servers
+Maintainer: Pascal Martin <pascal.fb.martin@gmail.com>
+Priority: optional
+Homepage: https://github.com/pascal-fb-martin/housesaga
+Standard-Version: 4.7.0
+Package: housesaga
+Architecture: {{arch}}
+Depends: 
+Description: A House service to aggregate and archive event and metric logs
+ HouseSaga is part of the House suite of web services.
+ .
+ HouseSaga collects live event and metric records from all running services
+ (on any machine) and write them to local storage. It implements a web UI
+ that allows operators to retrieve (and analyze) past events. This provides
+ a single point where to retrieve logs from the entire system. HouseSaga
+ takes great care of keeping the events properly ordered (by time) even
+ when the sources do local (unsynchronized) buffering.
+
