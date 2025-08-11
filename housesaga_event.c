@@ -88,6 +88,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
@@ -147,7 +148,7 @@ static int housesaga_saveaction (void *data) {
     static char EventHeader[] =
         "TIMESTAMP,HOST,APP,CATEGORY,OBJECT,ACTION,DESCRIPTION";
 
-    struct EventRecord *cursor = EventHistory + (int) ((long long)data);
+    struct EventRecord *cursor = EventHistory + (intptr_t) data;
 
     if (cursor->unsaved) {
         char buffer[1024];
@@ -324,7 +325,7 @@ static int housesaga_webaction (void *data) {
 
     int size = sizeof(WebFormatBuffer) - 4; // Need room to complete the JSON.
 
-    struct EventRecord *cursor = EventHistory + (int) ((long long)data);
+    struct EventRecord *cursor = EventHistory + (intptr_t) data;
 
     if (!(cursor->timestamp.tv_sec)) return 1;
 

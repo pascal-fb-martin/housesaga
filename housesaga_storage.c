@@ -65,7 +65,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <time.h>
-#include <dirent.h>
 
 #include "echttp.h"
 #include "echttp_static.h"

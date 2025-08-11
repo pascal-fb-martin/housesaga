@@ -62,6 +62,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
@@ -120,7 +121,7 @@ static int housesaga_saveaction (void *data) {
     static char SensorHeader[] =
         "TIMESTAMP,HOST,APP,LOCATION,NAME,VALUE,UNIT";
 
-    struct SensorRecord *cursor = SensorHistory + (int) ((long long)data);
+    struct SensorRecord *cursor = SensorHistory + (intptr_t) data;
 
     if (cursor->unsaved) {
         char buffer[1024];
@@ -248,7 +249,7 @@ static int housesaga_webaction (void *data) {
 
     int size = sizeof(WebFormatBuffer) - 4; // Need room to complete the JSON.
 
-    struct SensorRecord *cursor = SensorHistory + (int) ((long long)data);
+    struct SensorRecord *cursor = SensorHistory + (intptr_t) data;
 
     if (!(cursor->timestamp.tv_sec)) return 1;
 
