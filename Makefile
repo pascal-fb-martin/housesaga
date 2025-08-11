@@ -59,7 +59,8 @@ install-ui: install-preamble
 	$(INSTALL) -m 0644 public/* $(DESTDIR)$(SHARE)/public/saga
 
 install-runtime: install-preamble
-	if [ "x$(DESTDIR)" = "x" ] ; then $(INSTALL) -m 0755 -d $(STORE) ; chown -R house $(STORE) ; fi
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(STORE)
+	if [ "x$(DESTDIR)" = "x" ] ; then chown -R house:house $(STORE) ; fi
 	$(INSTALL) -m 0755 housesaga $(DESTDIR)$(prefix)/bin
 	$(INSTALL) -m 0755 -T events.tcl $(DESTDIR)$(prefix)/bin/houseevents
 	touch $(DESTDIR)/etc/default/housesaga
