@@ -7,7 +7,7 @@ Homepage: https://github.com/pascal-fb-martin/housesaga
 Standard-Version: 4.7.0
 Package: housesaga
 Architecture: {{arch}}
-Depends: 
+Depends: houseportal
 Description: A House service to aggregate and archive event and metric logs
  HouseSaga is part of the House suite of web services.
  .
