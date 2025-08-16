@@ -27,6 +27,7 @@ SHARE=$(prefix)/share/house
 INSTALL=/usr/bin/install
 
 HAPP=housesaga
+HCAT=infrastructure
 STORE=/var/lib/house/log
 
 # Application build. --------------------------------------------

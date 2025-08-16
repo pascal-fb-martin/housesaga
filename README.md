@@ -1,6 +1,9 @@
 # HouseSaga
+
 A House web service to maintain consolidated logs from all services.
+
 ## Overview
+
 This is a web server application that consolidate events, sensor data and traces and stores them to
 files for other web services.
 
@@ -33,6 +36,7 @@ HouseSaga comes with a command line tool named `houseevents` that makes it easie
 ```
    houseevents [-e|-s|-t] [year [month [day]]]
 ```
+
 The options are:
 
 * -e: show events. (Default)
@@ -127,16 +131,19 @@ Access the specified log file. (This does not work for metrics--for now.)
 ```
 GET /saga/log/latest
 ```
+
 Retrieve an ID of the latest event. Whatever this ID represents, or how it is built, is irrelevant. The only point is that this value changes when new events have been recorded. A client may poll this URI periodically: if any new event is detected, then the client must call the subsequent URI to retrieve the new list of events.
 
 ```
 GET /saga/log/events
 ```
+
 Retrieve up to 256 of the most recent events. The events are shown in reverse chronological order (most recent event first). Only events still stored in RAM can be accessed this way.
 
 ```
 POST /saga/log/events
 ```
+
 Push a new list of events to HouseSaga. The format of the events is the same as the JSON format provided for the source's own web event page.
 
 Each POST appends more events to the log. HouseSaga will infer the year and month from each event timestamps, not from the time of the submission. Therefore a timestamp field is mandatory in each event.
@@ -146,6 +153,7 @@ Each POST appends more events to the log. HouseSaga will infer the year and mont
 ```
 POST /saga/log/traces
 ```
+
 Push a new list of traces to HouseSaga. These traces are immediately written to storage. This means that traces might be stored out of their original sequence, depending on the clients buffer mechanisms.
 
 ### Web API for sensor data
@@ -153,6 +161,7 @@ Push a new list of traces to HouseSaga. These traces are immediately written to 
 ```
 GET /saga/log/sensor/check
 ```
+
 Retrieve an ID of the latest sensor data. Whatever this ID represents, or how it is built, is irrelevant. The only point is that this value changes when new sensor data has been recorded. A client may poll this URI periodically: if any new sensor data is detected, then the client must call the subsequent URI to retrieve the new list of sensor data.
 
 ```
@@ -174,6 +183,7 @@ Each POST appends more sensor records to the log. HouseSaga will infer the year 
 ```
 POST /saga/log/metrics
 ```
+
 Push one more metrics JSON object to the log. HouseSaga does not decode or validate the JSON object's content.
 
 ## Configuration
@@ -192,6 +202,7 @@ The provided Makefile supports building private Debian packages. These are _not_
   no source package.
 
 To build a Debian package, use the `debian-package` target:
+
 ```
 make debian-package
 ```
