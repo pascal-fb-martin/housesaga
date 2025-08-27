@@ -108,7 +108,7 @@ static char LocalHost[256] = {0};
 
 struct EventRecord {
     struct timeval timestamp;
-    unsigned long id;
+    long long id;
     int    unsaved;
     char   host[128];
     char   app[128];
@@ -122,7 +122,7 @@ struct EventRecord {
 
 static struct EventRecord EventHistory[HISTORY_DEPTH];
 static int EventCursor = 0;
-static unsigned long EventLatestId = 0;
+static long long EventLatestId = 0;
 
 static echttp_sorted_list EventChronology;
 static time_t EventLastSaved = 0;
@@ -216,7 +216,7 @@ static void housesaga_event_new (const struct timeval *timestamp,
         // Seed the latest event ID based on the first event's time.
         // This makes it random enough to make its value change after
         // a restart.
-        EventLatestId = (unsigned long) (time(0) & 0xfffff);
+        EventLatestId = (long long) (time(0) & 0xfffff);
     }
     EventLatestId += 1;
 
@@ -310,7 +310,7 @@ static int housesaga_event_getheader (char *buffer, int size, const char *from) 
     }
     return snprintf (buffer, size,
                     "{\"host\":\"%s\",\"proxy\":\"%s\",\"apps\":[\"%s\"],"
-                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%ld",
+                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%lld",
                     housesaga_host(), housesaga_portal(), LogAppName,
                     (long long)time(0), LogAppName, fromparam, EventLatestId);
 }
@@ -337,7 +337,7 @@ static int housesaga_webaction (void *data) {
     }
 
     int wrote = snprintf (WebFormatBuffer+WebFormatLength, size-WebFormatLength,
-                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%ld]",
+                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%lld]",
                           WebFormatPrefix,
                           (long long)(cursor->timestamp.tv_sec),
                           (int)(cursor->timestamp.tv_usec/1000),

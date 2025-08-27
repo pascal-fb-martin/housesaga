@@ -82,6 +82,7 @@ static char LocalHost[256] = {0};
 
 struct SensorRecord {
     struct timeval timestamp;
+    long long id;
     int    unsaved;
     char   host[128];
     char   app[128];
@@ -95,11 +96,14 @@ struct SensorRecord {
 
 static struct SensorRecord SensorHistory[HISTORY_DEPTH];
 static int SensorCursor = 0;
-static long SensorLatestId = 0;
+static long long SensorLatestId = 0;
 
 static echttp_sorted_list SensorChronology;
 static time_t SensorLastSaved = 0;
 static time_t SensorSaveLimit = 0;
+
+static time_t WebFormatSinceSec = 0;
+static int WebFormatSinceUSec = 0;
 
 
 static void safecpy (char *d, const char *s, int size) {
@@ -183,7 +187,16 @@ static void housesaga_sensor_new (const struct timeval *timestamp,
 
     if (!SensorChronology) SensorChronology = echttp_sorted_new();
 
+    if (SensorLatestId == 0) {
+        // Seed the latest sensor data ID based on the current time.
+        // This makes it random enough to make its value change after
+        // a restart.
+        SensorLatestId = (long long) (time(0) & 0xfffff);
+    }
+    SensorLatestId += 1;
+
     cursor->timestamp = *timestamp;
+    cursor->id = SensorLatestId;
     safecpy (cursor->host, host, sizeof(cursor->host));
     safecpy (cursor->app, app, sizeof(cursor->app));
     safecpy (cursor->location, location, sizeof(cursor->location));
@@ -214,14 +227,6 @@ static void housesaga_sensor_new (const struct timeval *timestamp,
                               (void *)((long)SensorCursor));
         cursor->timestamp.tv_sec = 0;
     }
-
-    if (SensorLatestId == 0) {
-        // Seed the latest event ID based on the first event's time.
-        // This makes it random enough to make its value change after
-        // a restart.
-        SensorLatestId = (long) (time(0) & 0xffff);
-    }
-    SensorLatestId += 1;
 }
 
 static int housesaga_sensor_getheader (char *buffer, int size, const char *from) {
@@ -236,7 +241,7 @@ static int housesaga_sensor_getheader (char *buffer, int size, const char *from)
     }
     return snprintf (buffer, size,
                     "{\"host\":\"%s\",\"proxy\":\"%s\",\"apps\":[\"%s\"],"
-                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%ld",
+                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%lld",
                     housesaga_host(), housesaga_portal(), LogAppName,
                     (long long)time(0), LogAppName, fromparam, SensorLatestId);
 }
@@ -253,8 +258,15 @@ static int housesaga_webaction (void *data) {
 
     if (!(cursor->timestamp.tv_sec)) return 1;
 
+    // Stop when the time limit, if any, was reached.
+    //
+    if (cursor->timestamp.tv_sec <= WebFormatSinceSec) {
+        if (cursor->timestamp.tv_sec < WebFormatSinceSec) return 0;
+        if (cursor->timestamp.tv_usec < WebFormatSinceUSec) return 0;
+    }
+
     int wrote = snprintf (WebFormatBuffer+WebFormatLength, size-WebFormatLength,
-                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]",
+                          "%s[%lld%03d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%lld]",
                           WebFormatPrefix,
                           (long long)(cursor->timestamp.tv_sec),
                           (int)(cursor->timestamp.tv_usec/1000),
@@ -263,7 +275,8 @@ static int housesaga_webaction (void *data) {
                           cursor->value,
                           cursor->unit,
                           cursor->host,
-                          cursor->app);
+                          cursor->app,
+                          cursor->id);
     WebFormatPrefix = ",";
 
     if (WebFormatLength + wrote >= size) {
@@ -284,6 +297,17 @@ static const char *housesaga_weblatest (const char *method, const char *uri,
 }
 
 static const char *housesaga_webget (void) {
+
+    const char *since = echttp_parameter_get("since");
+
+    if (since) {
+        long long sincevalue = atoll(since);
+        WebFormatSinceSec = (time_t)(sincevalue / 1000);
+        WebFormatSinceUSec = (int)((sincevalue % 1000) * 1000);
+    } else {
+        WebFormatSinceSec = 0;
+        WebFormatSinceUSec = 0;
+    }
 
     echttp_content_type_json ();
 
@@ -387,13 +411,15 @@ void housesaga_sensor_initialize (int argc, const char **argv) {
     if (!SensorChronology) SensorChronology = echttp_sorted_new();
 
     echttp_route_uri ("/saga/log/sensor/data", housesaga_websensor);
-    echttp_route_uri ("/saga/log/sensor/check", housesaga_weblatest);
+    echttp_route_uri ("/saga/log/sensor/latest", housesaga_weblatest);
+    echttp_route_uri ("/saga/log/sensor/check", housesaga_weblatest); // Compatibility.
 
     // Alternate paths for application-independent web pages.
     // (The log files are stored at the same place for all applications.)
     //
     echttp_route_uri ("/log/sensor/data", housesaga_websensor);
-    echttp_route_uri ("/log/sensor/check", housesaga_weblatest);
+    echttp_route_uri ("/log/sensor/latest", housesaga_weblatest);
+    echttp_route_uri ("/log/sensor/check", housesaga_weblatest); // Compatibility.
 
     housesaga_sensor_background (time(0)); // Initial state.
 }
