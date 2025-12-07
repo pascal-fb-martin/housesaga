@@ -24,36 +24,64 @@
 #
 #    This tool is not terribly fast when the log file is large.
 
+# This is the default storage location.
 set logroot /var/lib/house/log
 
 set filetype event.csv
 set dateargv {}
 
 foreach option $argv {
+   if {[string match "X-h" "X$option"]} {
+      puts "[lindex argv 0] \[-e|-s|-t\] \[year \[month \[day\]\]\]"
+      puts "  -e     Show events (default)"
+      puts "  -s     Show sensor data"
+      puts "  -t     Show traces"
+      exit 0
+   }
    if {[string match "X-e" "X$option"]} {set filetype event.csv}
    if {[string match "X-s" "X$option"]} {set filetype sensor.csv}
    if {[string match "X-t" "X$option"]} {set filetype trace.csv}
    if {[string match {X[0-9]*} "X$option"]} {lappend dateargv [format {%02d} $option]}
 }
 set argv $dateargv
-
 set now [clock seconds]
 
-set year [clock format $now -format "%Y"]
-set month [clock format $now -format "%m"]
-set day [clock format $now -format "%d"]
-if {[llength $argv] > 0} {
+if {[llength $argv] <= 0} {
+    set year [clock format $now -format "%Y"]
+    set month [clock format $now -format "%m"]
+    set day [clock format $now -format "%d"]
+    set localpath [file join $year $month $day]
+} else {
     set year [lindex $argv 0]
-    set month 12
-    set day 31
+    set localpath [file join $year]
+
+    if {[llength $argv] > 1} {
+        set month [lindex $argv 1]
+        set localpath [file join $year $month]
+    }
+    if {[llength $argv] > 2} {
+        set day [lindex $argv 2]
+        set localpath [file join $year $month $day]
+    }
 }
-if {[llength $argv] > 1} {
-    set month [lindex $argv 1]
-    set day 31
+# First plan to search at the default location..
+set searchpath [file join $logroot $localpath]
+
+# A personal convention is to store events on a large secondary storage
+# (as <mount point>/house/log) when running on a Raspberry Pi, where
+# the boot storage is a Micro SD that should not be continuously written to.
+# Only use that location if it has the data being looked for.
+#
+set volums [split [exec /usr/bin/df --output=target --exclude-type=tmpfs --exclude-type=devtmpfs] "\n"]
+
+foreach mount $volums {
+    if {[string match {Mounted on*} $mount]} continue
+    set location [file join $mount house log $localpath]
+    if {[file isdirectory $location]} {
+        set searchpath $location
+        break
+    }
 }
-if {[llength $argv] > 2} {set day [lindex $argv 2]}
-set pathm [file join $logroot $year $month]
-set pathd [file join $logroot $year $month $day]
 
 proc convertcsv {name} {
    set fd [open $name r]
@@ -65,16 +93,19 @@ proc convertcsv {name} {
       set timestamp [split [lindex $data 0] {.}]
       if {[llength $timestamp] != 2} continue
       set seconds [lindex $timestamp 0]
-      puts [join [concat [list "[clock format $seconds -format {%D %T}].[lindex $timestamp 1]"] [lrange $data 1 end]] {,}]
+      set output [join [concat [list "[clock format $seconds -format {%D %T}].[lindex $timestamp 1]"] [lrange $data 1 end]] {,}]
+
+      if {[catch "puts {$output}"]} exit
    }
    close $fd
 }
 
-if {[file exists [file join $pathd $filetype]]} {
-   convertcsv [file join $pathd $filetype]
-} elseif {[file exists [file join $pathm $filetype]]} {
-   convertcsv [file join $pathm $filetype]
-} else {
-   puts "No event for [clock format $now -format {%B %Y}]"
+if {[file isdirectory $searchpath]} {
+    set dirlist [lsort [exec find $searchpath -type d]]
+    foreach d $dirlist {
+       if {[file exists [file join $d $filetype]]} {
+           convertcsv [file join $d $filetype]
+       }
+   }
 }
 
