@@ -310,9 +310,11 @@ static int housesaga_event_getheader (char *buffer, int size, const char *from) 
     }
     return snprintf (buffer, size,
                     "{\"host\":\"%s\",\"proxy\":\"%s\",\"apps\":[\"%s\"],"
-                        "\"timestamp\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%lld",
+                        "\"timestamp\":%lld,\"latest\":%lld,\"%s\":{\"invert\":true%s,\"latest\":%lld",
                     housesaga_host(), housesaga_portal(), LogAppName,
-                    (long long)time(0), LogAppName, fromparam, EventLatestId);
+                    (long long)time(0), EventLatestId,
+                    LogAppName, fromparam, EventLatestId);
+    // (The second iteration of EventLatestId above is for compatibility only.)
 }
 
 static char WebFormatBuffer[128+HISTORY_DEPTH*(sizeof(struct EventRecord)+24)] = {0};
@@ -358,6 +360,9 @@ static int housesaga_webaction (void *data) {
     return 1;
 }
 
+// This request is deprecated. Use the "GET /log/events" request with
+// the "known" parameter instead for a more efficient polling.
+//
 static const char *housesaga_weblatest (const char *method, const char *uri,
                                         const char *data, int length) {
 
@@ -368,6 +373,12 @@ static const char *housesaga_weblatest (const char *method, const char *uri,
 }
 
 static const char *housesaga_webget (void) {
+
+    const char *known = echttp_parameter_get("known");
+    if (known && (atoll (known) == EventLatestId)) {
+        echttp_error (304, "Not Modified");
+        return "";
+    }
 
     const char *since = echttp_parameter_get("since");
 
@@ -485,13 +496,13 @@ void housesaga_event_initialize (int argc, const char **argv) {
     if (!EventChronology) EventChronology = echttp_sorted_new();
 
     echttp_route_uri ("/saga/log/events", housesaga_webevents);
-    echttp_route_uri ("/saga/log/latest", housesaga_weblatest);
+    echttp_route_uri ("/saga/log/latest", housesaga_weblatest); // Deprecated
 
     // Alternate paths for application-independent web pages.
     // (The log files are stored at the same place for all applications.)
     //
     echttp_route_uri ("/log/events", housesaga_webevents);
-    echttp_route_uri ("/log/latest", housesaga_weblatest);
+    echttp_route_uri ("/log/latest", housesaga_weblatest); // Deprecated.
 
     housesaga_event_background (time(0)); // Initial state.
 }

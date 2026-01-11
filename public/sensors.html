@@ -4,7 +4,8 @@
 <link rel=stylesheet type="text/css" href="/house.css" title="House">
 <script>
 
-var sensorLastId = new Array();
+var SensorLastAppId = new Array(); // Vestigial remain, for the title only.
+var SensorLatest = 0;
 
 function sensorNewColumn (text) {
    var column = document.createElement("td");
@@ -27,10 +28,12 @@ function sensorRow (data) {
 
 function sensorShow (response) {
 
+   if (response.latest) SensorLatest = response.latest;
+
    var app = response.apps[0]; // For now handle only one app per query.
 
-   if (!sensorLastId[app]) {
-      var name = app[0].toUpperCase() + app.substring(1);
+   if (!SensorLastAppId[app]) {
+      var name = app[0].toUpperCase() + app.substring(1); // Capitalize.
       var title = response.host + ' - ' + name + ' Sensor Data';
       document.getElementsByTagName ('title')[0].innerHTML = title;
       var elements = document.getElementsByClassName ('hostname');
@@ -39,7 +42,7 @@ function sensorShow (response) {
       }
    }
 
-   sensorLastId[app] = response[app].latest;
+   SensorLastAppId[app] = response[app].latest;
 
    var table = document.getElementsByClassName ('datalist')[0];
    for (var i = table.childNodes.length - 1; i > 1; i--) {
@@ -59,8 +62,11 @@ function sensorShow (response) {
 
 function sensorUpdate() {
 
+   var url = "/saga/log/sensor/data";
+   if (SensorLatest) url += "?known=" + SensorLatest
+
    var command = new XMLHttpRequest();
-   command.open("GET", "/saga/log/sensor/data");
+   command.open("GET", url);
    command.onreadystatechange = function () {
       if (command.readyState === 4 && command.status === 200) {
          sensorShow (JSON.parse(command.responseText));
@@ -69,31 +75,9 @@ function sensorUpdate() {
    command.send(null);
 }
 
-function sensorCheck () {
-
-   var response = null;
-
-   function needUpdate (result, value) {
-      if (result) return true;
-      if (! sensorLastId[value]) return true;
-      if (response[value].latest != sensorLastId[value]) return true;
-      return false;
-   }
-
-   var command = new XMLHttpRequest();
-   command.open("GET", "/saga/log/sensor/check");
-   command.onreadystatechange = function () {
-       if (command.readyState === 4 && command.status === 200) {
-           response = JSON.parse(command.responseText);
-           if (response.apps.reduce(needUpdate, false)) sensorUpdate ();
-       }
-   }
-   command.send(null);
-}
-
 window.onload = function() {
    sensorUpdate();
-   setInterval (sensorCheck, 1000);
+   setInterval (sensorUpdate, 1000);
 }
 </script>
 <head>
