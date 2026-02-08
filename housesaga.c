@@ -83,7 +83,6 @@ const char *housesaga_portal (void) {
 int main (int argc, const char **argv) {
 
     int i;
-    const char *error;
 
     // These strange statements are to make sure that fds 0 to 2 are
     // reserved, since this application might output some errors.

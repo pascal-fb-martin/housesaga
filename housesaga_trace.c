@@ -85,10 +85,10 @@ static void housesaga_trace_new (const struct timeval *timestamp,
     static char TraceHeader[] =
         "TIMESTAMP,HOST,APP,FILE,LINE,LEVEL,OBJECT,DESCRIPTION";
 
-    char buffer[1024];
+    char buffer[1080];
 
-    snprintf (buffer, sizeof(buffer), "%ld.%03d,%s,%s,%s,%d,%s,%s,\"%s\"",
-              timestamp->tv_sec, timestamp->tv_usec / 1000,
+    snprintf (buffer, sizeof(buffer), "%lld.%03d,%s,%s,%s,%d,%s,%s,\"%s\"",
+              (long long)(timestamp->tv_sec), (int)(timestamp->tv_usec / 1000),
               host, app, file, line, level, object, text);
 
     housesaga_storage_save ("trace", timestamp->tv_sec, TraceHeader, buffer);

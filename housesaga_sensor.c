@@ -78,8 +78,6 @@
 
 static const char  LogAppName[] = "saga";
 
-static char LocalHost[256] = {0};
-
 struct SensorRecord {
     struct timeval timestamp;
     long long id;
@@ -134,7 +132,7 @@ static int housesaga_saveaction (void *data) {
 
         snprintf (buffer, sizeof(buffer), "%lld.%03d,%s,%s,%s,%s,%s,%s",
                   (long long)(cursor->timestamp.tv_sec),
-                  cursor->timestamp.tv_usec / 1000,
+                  (int)(cursor->timestamp.tv_usec / 1000),
                   cursor->host,
                   cursor->app,
                   cursor->location,
@@ -150,7 +148,6 @@ static int housesaga_saveaction (void *data) {
 
 static void housesaga_sensor_save (int full) {
 
-    int complete;
     time_t now = time(0);
 
     // In order to keep the historical log in chronological order, we delay

@@ -213,9 +213,7 @@ static const char *saga_storage_daily (const char *method, const char *uri,
     static char buffer[131072];
 
     char path[1024];
-    int  tail;
     char filepath[1024];
-    struct stat info;
 
     int  cursor;
     const char *year = echttp_parameter_get("year");
@@ -232,8 +230,8 @@ static const char *saga_storage_daily (const char *method, const char *uri,
         echttp_error (404, "Not Found");
         return "";
     }
-    tail = snprintf (filepath, sizeof(filepath),
-                     "%s/%02d/%02d/", year, atoi(month), atoi(day));
+    snprintf (filepath, sizeof(filepath),
+              "%s/%02d/%02d/", year, atoi(month), atoi(day));
 
     const char *sep = "";
     cursor = snprintf (buffer, sizeof(buffer), "[");
