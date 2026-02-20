@@ -38,6 +38,7 @@
 #include "housesaga.h"
 #include "housesaga_metrics.h"
 #include "housesaga_storage.h"
+#include "housesaga_traffic.h"
 
 static const char *housesaga_webmetrics (const char *method, const char *uri,
                                          const char *data, int length) {
@@ -46,6 +47,7 @@ static const char *housesaga_webmetrics (const char *method, const char *uri,
 
     housesaga_storage_save ("metrics.json", time(0), 0, data);
     housesaga_storage_flush ();
+    housesaga_traffic_increment ("MetricsReceived");
 
     return "";
 }

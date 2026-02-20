@@ -37,7 +37,8 @@ OBJS= housesaga.o \
       housesaga_trace.o \
       housesaga_sensor.o \
       housesaga_metrics.o \
-      housesaga_storage.o
+      housesaga_storage.o \
+      housesaga_traffic.o
 LIBOJS=
 
 all: housesaga

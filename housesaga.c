@@ -48,6 +48,7 @@
 #include "housesaga_sensor.h"
 #include "housesaga_event.h"
 #include "housesaga_metrics.h"
+#include "housesaga_traffic.h"
 
 static void housesaga_background (int fd, int mode) {
 
@@ -60,6 +61,7 @@ static void housesaga_background (int fd, int mode) {
     houseportal_background (now);
     housesaga_event_background (now);
     housesaga_sensor_background (now);
+    housesaga_traffic_background (now);
 }
 
 static void housesaga_protect (const char *method, const char *uri) {
@@ -113,6 +115,7 @@ int main (int argc, const char **argv) {
     housesaga_sensor_initialize (argc, argv);
     housesaga_metrics_initialize (argc, argv);
     housesaga_storage_initialize (argc, argv);
+    housesaga_traffic_initialize (argc, argv);
 
     echttp_static_route ("/", "/usr/local/share/house/public");
     echttp_background (&housesaga_background);

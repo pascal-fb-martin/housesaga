@@ -75,6 +75,7 @@
 #include "housesaga.h"
 #include "housesaga_sensor.h"
 #include "housesaga_storage.h"
+#include "housesaga_traffic.h"
 
 static const char  LogAppName[] = "saga";
 
@@ -397,6 +398,7 @@ static const char *housesaga_webpost (const char *data, int length) {
             host && app && location && name && value && unit) {
             housesaga_sensor_new
                 (&timestamp, host, app, location, name, value, unit);
+            housesaga_traffic_increment ("SensorReceived");
         }
     }
 

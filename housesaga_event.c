@@ -101,6 +101,7 @@
 #include "housesaga.h"
 #include "housesaga_event.h"
 #include "housesaga_storage.h"
+#include "housesaga_traffic.h"
 
 static const char  LogAppName[] = "saga";
 
@@ -472,6 +473,7 @@ static const char *housesaga_webpost (const char *data, int length) {
             host && app && category && object && action && description) {
             housesaga_event_new (&timestamp, host, app,
                                  category, object, action, description, 1);
+            housesaga_traffic_increment ("EventsReceived");
         }
     }
 

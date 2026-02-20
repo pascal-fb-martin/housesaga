@@ -67,6 +67,7 @@
 #include "housesaga.h"
 #include "housesaga_trace.h"
 #include "housesaga_storage.h"
+#include "housesaga_traffic.h"
 
 
 /* Record a new trace.
@@ -193,8 +194,13 @@ static const char *housesaga_webtraces (const char *method, const char *uri,
         const char *object = housesaga_getjsonstring (TraceParsed+trace, "[4]");
         const char *text = housesaga_getjsonstring (TraceParsed+trace, "[5]");
         if (timestamp.tv_sec && file && line && level && object && text) {
-            housesaga_trace_new (&timestamp, host, app,
-                                 file, line, level, object, text);
+            if (strcasecmp (level, "TEST")) {
+                housesaga_trace_new (&timestamp, host, app,
+                                     file, line, level, object, text);
+                housesaga_traffic_increment ("TracesStored");
+            } else { // Skip "TEST" traces.
+                housesaga_traffic_increment ("TracesIgnored");
+            }
         }
     }
     housesaga_storage_flush ();

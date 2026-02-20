@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=stylesheet type="text/css" href="/house.css" title="House">
+<script>
+
+function compareId (a, b) {
+    var namea = a.id.toUpperCase();
+    var nameb = b.id.toUpperCase();
+    if (namea < nameb) return -1;
+    if (namea > nameb) return 1;
+    return 0;
+}
+
+function sagaCleanTable (table) {
+
+    for (var i = table.rows.length - 1; i > 0; i--) {
+        table.deleteRow(i);
+    }
+}
+
+function sagaShowTraffic (response) {
+
+   var title = document.getElementById ('pagetitle');
+   if (title) title.innerHTML = response.host + ' - Saga Traffic';
+
+   var table = document.getElementById ('traffic');
+   sagaCleanTable (table);
+
+   var traffic = response.saga.traffic.sort(compareId);
+   var address = response.host;
+   var now = Date.now();
+
+   for (var i = 0; i < traffic.length; i++) {
+
+        var item = traffic[i];
+        var outer = table.insertRow();
+
+        var inner = document.createElement("td");
+        inner.innerHTML = item.id;
+        outer.appendChild(inner);
+
+        inner = document.createElement("td");
+        inner.innerHTML = ''+item.value;
+        outer.appendChild(inner);
+
+        inner = document.createElement("td");
+        inner.innerHTML = ' ';
+        outer.appendChild(inner);
+   }
+}
+
+function sagaFeed () {
+    var command = new XMLHttpRequest();
+    command.open("GET", "/saga/log/traffic");
+    command.onreadystatechange = function () {
+        if (command.readyState === 4 && command.status === 200) {
+            sagaShowTraffic (JSON.parse(command.responseText));
+        }
+    }
+    command.send(null);
+}
+
+window.onload = function() {
+   sagaFeed();
+   setInterval (sagaFeed, 2000);
+};
+</script>
+<head>
+   <title id='pagetitle'>Saga Traffic</title>
+</head>
+<body>
+   <header>
+   <table>
+   <tr>
+   <td><a href="/saga/index.html">Events</a></td>
+   <td><a href="/saga/sensors.html">Sensors</a></td>
+   <td><a href="/saga/archives.html">Archives</a></td>
+   <td><a href="/saga/graphs.html">Graphs</a></td>
+   <td><span>Traffic</span></td>
+   </tr>
+   </table>
+   </header>
+   <section>
+   <table class="housewidetable houseevent" id="traffic" border="0">
+      <tr>
+         <th width="30%">ID</th>
+         <th width="10%">VALUE</th>
+         <th width="60%"></th>
+      </tr>
+   </table>
+   </section>
+</body>
+</html>
+
