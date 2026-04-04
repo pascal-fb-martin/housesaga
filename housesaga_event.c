@@ -96,6 +96,7 @@
 #include "echttp.h"
 #include "echttp_json.h"
 #include "echttp_sorted.h"
+#include "echttp_libc.h"
 #include "houselog.h"
 
 #include "housesaga.h"
@@ -130,12 +131,8 @@ static time_t EventSaveLimit = 0;
 
 static void safecpy (char *d, const char *s, int size) {
     if (!d) return;
-    if (!s) {
-        d[0] = 0;
-    } else {
-        strncpy (d, s, size);
-        d[size-1] = 0;
-    }
+    if (s) stpecpy (d, d+size, s);
+    else d[0] = 0;
 }
 
 static unsigned long long housesaga_timestamp2key (const struct timeval *t) {
