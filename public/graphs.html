@@ -449,19 +449,28 @@ function decodeArchive (text) {
     var lines = text.split(/\r?\n/);
     var result = new Object();
     var startofday = null;
+    // Determine this day's start time.
+    for (var i = 0; i < lines.length; ++i) {
+        if (!lines[i]) continue;
+        var data = JSON.parse(lines[i]);
+        if (!data.host) continue;
+        if (!data.timestamp) continue;
+        // Add 60 seconds if ever the clock were not well synchronized:
+        // this record could be for the end of the previous day.
+        startofday = new Date((data.timestamp+60) * 1000);
+        startofday.setHours (0);
+        startofday.setMinutes (0);
+        startofday.setSeconds (0);
+        startofday = startofday.getTime() / 1000;
+        break;
+    }
+    if (!startofday) return;
     for (var i = lines.length-1; i >= 0; --i) {
         if (!lines[i]) continue;
         var data = JSON.parse(lines[i]);
         if (!data.host) continue;
         if (!data.host.length) continue;
         if (!data.timestamp) continue;
-        if (!startofday) {
-            startofday = new Date(data.timestamp * 1000);
-            startofday.setHours (0);
-            startofday.setMinutes (0);
-            startofday.setSeconds (0);
-            startofday = startofday.getTime() / 1000;
-        }
         if (!result[data.host]) {
             result[data.host] = new Object();
             result[data.host].cpu = new Array();
