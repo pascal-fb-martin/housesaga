@@ -130,8 +130,7 @@ static time_t EventSaveLimit = 0;
 
 
 static void safecpy (char *d, const char *s, int size) {
-    if (!d) return;
-    if (s) stpecpy (d, d+size, s);
+    if (s) strtcpy (d, s, size);
     else d[0] = 0;
 }
 
