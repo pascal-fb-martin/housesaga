@@ -162,7 +162,7 @@ function drawCalendar (data) {
              button.onclick = updateDayArchive;
              button.day = ''+i;
              button.className = 'housewidebutton';
-             button.enabled = data[i]?false:true;
+             button.disabled = data[i]?false:true;
              column.appendChild(button);
              if (!line) line = table.insertRow();
              line.appendChild(column);
