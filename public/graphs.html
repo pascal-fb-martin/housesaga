@@ -257,11 +257,67 @@ function showDayArchiveRAM (data) {
     var step = 1152 / 288;
     var start = 20 + (step / 2);
     var point;
+    var previous;
     for (var i = 0; i < data.length; ++i) {
         var percent = null;
         if (data[i]) {
             var available = data[i].available;
             percent = inversePercentage (toPercentage(data[i].size[0], available));
+            previous = percent;
+        } else {
+            percent = previous;
+        }
+        var point = showPercentiles (chart, start, step, i, percent);
+        if (point) median += point;
+    }
+    if (median.length > 0) showPolyLine (chart, median, '#000000');
+    showScale (chart, '%');
+}
+
+function showDayArchiveStorage (data) {
+    if (!data) return;
+    var median = '';
+    var chart = document.getElementById ('chartstorage');
+    if (!chart) return;
+    var step = 1152 / 288;
+    var start = 20 + (step / 2);
+    var point;
+
+    // Need two passes: the fist is to consolidate the numbers per volume
+    // into a single set (summation), the second is to draw the graph.
+    //
+    var consolidated = new Array();
+    for (var i = 0; i < data.length; ++i) {
+        if (!data[i]) {
+           if (i > 0) consolidated[i] = consolidated[i-1];
+           continue;
+        }
+        consolidated[i] = new Object();
+        consolidated[i].size = 0;
+        consolidated[i].free = [0, 0, 0];
+        var max = 0;
+        for (const [key, value] of Object.entries(data[i])) {
+            consolidated[i].size += value.size[0];
+            var length = value.free.length - 1;
+            if (max < length) max = length;
+            for (var j = 0; j < length; ++j) {
+                consolidated[i].free[j] += value.free[j];
+            }
+            // Normalize to min/median/max.
+            for (var j = length; j < 3; ++j) {
+                consolidated[i].free[j] += value.free[length-1];
+            }
+        }
+        // Reduce to the actual input's size.
+        consolidated[i].free = consolidated[i].free.slice (0, max);
+        consolidated[i].free[max] = "MB";
+    }
+    for (var i = 0; i < data.length; ++i) {
+        var percent = null;
+        if (consolidated[i]) {
+            var size = consolidated[i].size;
+            var free = consolidated[i].free;
+            percent = inversePercentage (toPercentage(size, free));
         }
         var point = showPercentiles (chart, start, step, i, percent);
         if (point) median += point;
@@ -439,6 +495,7 @@ function showDayArchive () {
 
    showDayArchiveCPU (CurrentDayArchive[SelectedHost].cpu);
    showDayArchiveRAM (CurrentDayArchive[SelectedHost].memory);
+   showDayArchiveStorage (CurrentDayArchive[SelectedHost].storage);
    showDayArchiveDisk (CurrentDayArchive[SelectedHost].disk);
    showDayArchiveNet (CurrentDayArchive[SelectedHost].net);
    showDayArchiveTemp (CurrentDayArchive[SelectedHost].temp);
@@ -750,6 +807,13 @@ window.onresize = resizeDayArchive;
           <tr><th>MEMORY</th></tr>
           <tr><td>
            <svg id="chartram" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
+           </svg>
+          </td></tr>
+          </table>
+          <table class="housewidetable" border="0">
+          <tr><th>STORAGE</th></tr>
+          <tr><td>
+           <svg id="chartstorage" class="chartmetrics" viewBox="0 0 616 240" width="100%" height="200">
            </svg>
           </td></tr>
           </table>
